@@ -1,4 +1,4 @@
-# Report File Format
+# Report File Template
 
 This file describes the design of a JSON template that will be used for the output report files.
 The template is inspired by [Tesults](https://www.tesults.com/docs/tesults-json-data-standard).
@@ -39,7 +39,7 @@ Resulting in the following basic template:
 }
 ```
 
-To further specify the available fields, we first identify our end users. **and how they might want to use the reporting tool.**
+To further specify the available fields, we first identify our end users.
 
 - us, as the designers of this energy consumption reporter tool;
 - software developer teams;
