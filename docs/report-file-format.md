@@ -18,20 +18,20 @@ Resulting in the following basic template:
 {
 	"results": {
 		"name": "<user defined descriptive name>",
-		<!-- other high-level information -->
+		<!-- other high-level information -->,
 		"cases": [
 			{
 				"name": "<some test method name",
 				"result": "pass",
 				"reason": "",
-				<!-- other test-level information>,
+				<!-- other test-level information -->,
 				"_userDefinedField": "<some value>",
 			},
 			{
 				"name": "<another test method name",
 				"result": "fail",
 				"reason": "AssertionError: Invalid Operation",
-				<!-- other test-level information>,
+				<!-- other test-level information -->,
 				"_userDefinedField": "<some value>",
 			}
 		]
@@ -50,11 +50,6 @@ We choose to ommit this step for now and create a first version without using a 
 
 We will now go into the suspected needs for each of the identified end users.
 
-<!-- ### Individual Softwarre Developers
-Individual software developers will write their own small to medium size projects at home.
-They could be private projects, or small tools that they want to open-source.
-They have a low interest in making their projects use less energy, because they do not have a monetairy incentive to do so. -->
-
 ### Software developer teams
 
 Software developer teams work for companies.
@@ -63,27 +58,30 @@ A software developer working on improving the energy consumption of a specific p
 They might even want to try different approaches and compare them.
 Therefore, they need a way to differentiate the different reports for each of these scenarios.
 All software developers (should) use a versioning system (e.g. git) to track their different versions of the code.
+The energy consumption of software will differ from hardware to hardware and, therefore, the system information needs to be saved.
 
 From these observations we extract the following high-level data fields:
 
 - **software_version:** the current version of their software;
 - **commit_hash:** a hash corresponding to a git commit;
 - **date:** they want to filter on all the reports of a specific day;
+- **hardware:** object containing details about the hardware the tests were executed on. This object must be extendible, since users may want to save extra information for better reproducibility.
 
 In order to effectively compare the energy consumption of the different versions of a test, we need to save this information.
 Since the end users may also need to compare the power consumption, we also need to keep track of the execution time of the tests.
-In order to prevent round-off errors when reporting the energy- and power-consumption we will only list the energy-consumption and the execution time.
-From that information the power-consumption can already be calculated.
+For more accurate results the scenarios should be measured more than once.
+Therefore, the developer can specify the number of times to execute and measure the scenario.
 Furthermore, the energy measurement only makes sense for passing tests, therefore, we also need to include if a test passed or not.
 
 We arrive at the following test-level data fields:
 
 - **name:** name of the test function;
-- **energy_total:** total energy of the test;
-- **execution_time:** total execution time of the test;
+- **N:** the number of times the scenario/test has been run (by doing multiple runs, abnormalities can be identified);
+- **energy:** list with _N_ entries corresponding to the total energy of a single execution of a scenario.
+- **power:** list with _N_ entries corresponding to the average power of a single execution of a scenario.
+- **execution_time:** list with _N_ entries with the execution time for each of the executions;
 - **result:** "pass"/"fail" of the test;
 - **reason:** if a test failed, the reason why it failed;
-- **N:** the number of times the test has been run (by doing multiple runs, outliers can be identified);
 
 ### Team managers
 
@@ -122,14 +120,33 @@ The previews identified data fields resulted in the following JSON template:
 		"commit": "755f02b971d59acd85d3aa727baa0e822efcd73f",
 		"date": "2024-03-11T16:50:00",
 		"model": "https://github.com/green-coding-solutions/spec-power-model",
+		"hardware": {
+			"PC_name": "<value>",
+			"CPU_name": "<value>",
+			"CPU_temp": "<value>",
+			"CPU_freq": "<value>",
+		},
 		"cases": [
 			{
 				"name": "test_user_supplies_incomplete_information",
 				"result": "fail",
 				"reason": "AssertionError: Invalid Operation",
-				"execution_time": "<milliseconds>",
-				"energy_total": "<joules>",
-				"N": "<number_of_executions>",
+				"N": 3,
+				"execution_time": [
+					"<miliseconds>",
+					"<miliseconds>",
+					"<miliseconds>"
+				],
+				"energy": [
+					"<joules>",
+					"<joules>",
+					"<joules>",
+				],
+				"power": [
+					"<Watts>",
+					"<Watts>",
+					"<Watts>"
+				],
 				"_my_custom_field": "This is so epic!",
 				"_test_params": {
 					"param1": "<value1>",
@@ -140,9 +157,22 @@ The previews identified data fields resulted in the following JSON template:
 				"name": "test_user_supplies_complete_information",
 				"result": "pass",
 				"reason": "",
-				"execution_time": "<milliseconds>",
-				"energy_total": "<joules>",
-				"N": "<number_of_executions>",
+				"N": 3,
+				"execution_time": [
+					"<miliseconds>",
+					"<miliseconds>",
+					"<miliseconds>"
+				],
+				"energy": [
+					"<joules>",
+					"<joules>",
+					"<joules>",
+				],
+				"power": [
+					"<Watts>",
+					"<Watts>",
+					"<Watts>"
+				],
 				"_my_custom_field": "This is so epic!",
 				"_test_params": {
 					"param1": "<value1>",
