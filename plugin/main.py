@@ -1,6 +1,7 @@
 import os
 import pickle
 import threading
+import time
 import numpy as np
 import pandas as pd
 from xgboost import XGBRegressor
@@ -8,6 +9,8 @@ from auto_detect import get_cpu_info
 import logging
 from time import sleep
 import psutil
+
+from report_builder import ReportBuilder
 
 
 logger = logging.getLogger(__name__)
@@ -58,37 +61,10 @@ def train_model(cpu_chips, Z):
     return model
 
 
-def interpolate_helper(predictions, lower, upper, step=501):
-
-    diff = int(upper-lower)
-    diff_value = predictions[upper] - predictions[lower]
-
-    for i in np.linspace(0, diff, step):
-        predictions[round(lower+i, 2)] = predictions[lower] + \
-            ((diff_value/diff)*i)
-
-    return predictions
-
-
-def interpolate_predictions(predictions):
-    predictions = interpolate_helper(predictions, 0.0, 5.0, 501)
-    predictions = interpolate_helper(predictions, 5.0, 15.0, 1001)
-    predictions = interpolate_helper(predictions, 15.0, 25.0, 1001)
-    predictions = interpolate_helper(predictions, 25.0, 35.0, 1001)
-    predictions = interpolate_helper(predictions, 35.0, 45.0, 1001)
-    predictions = interpolate_helper(predictions, 45.0, 55.0, 1001)
-    predictions = interpolate_helper(predictions, 55.0, 65.0, 1001)
-    predictions = interpolate_helper(predictions, 65.0, 75.0, 1001)
-    predictions = interpolate_helper(predictions, 75.0, 85.0, 1001)
-    predictions = interpolate_helper(predictions, 85.0, 95.0, 1001)
-    # Question: between 95 and 100 is no difference. How do we extrapolate?
-    predictions = interpolate_helper(predictions, 95.0, 100.0, 501)
-
-    return predictions
-
-
 def start_measurement(pid: int):
     global running
+
+    now = time.time()
 
     cpu_info = get_cpu_info(logger)
 
@@ -96,7 +72,8 @@ def start_measurement(pid: int):
         'HW_CPUFreq': [cpu_info['cpu-freq']],
         'CPUThreads': [cpu_info['cpu-threads']],
         'CPUCores': [cpu_info['cpu-cores']],
-        'TDP': [cpu_info['tdp']],
+        # 'TDP': [cpu_info['tdp']],
+        'TDP': [105],
         'HW_MemAmountGB': [cpu_info['ram']],
         # 'Architecture': [cpu_info['architecture']],
         'Architecture': ['epyc-gen3'],  # Ryzen not supported
@@ -118,18 +95,40 @@ def start_measurement(pid: int):
 
     process = psutil.Process(pid)
     predictions = {}
-    counter = 0
+    cpu_temps = []
     while (running):
         utilization = process.cpu_percent()
         print("Utilization: ", utilization)
         Z['utilization'] = float(utilization)
-        predictions[counter] = model.predict(Z)[0]
-        print("Prediction: ", predictions[counter])
-        counter += 1
-        sleep(1)
+        predictions[time.time()] = model.predict(Z)[0]
+        cpu_temps.append(psutil.sensors_temperatures())
+        time.sleep(0.2)
 
-    predictions = pd.DataFrame.from_dict(predictions, orient='index')
-    predictions.to_csv('predictions.csv', index=False)
+    total_time = time.time() - now
+    print("Time: ", total_time)
+
+    print("Predictions: ", predictions)
+
+    # calculate energy consumption over prediction which is in Watts
+    energy = 0
+    last_time = 0
+    for key in predictions:
+        if last_time != 0:
+            energy += predictions[key] * (key - last_time)
+            last_time = key
+        else:
+            last_time = key
+
+    print("Energy: ", energy)
+
+    report_builder = ReportBuilder(cpu_info, total_time, energy, float(np.mean(
+        list(predictions.values()))), "CPU Performance Report")
+    report_builder.generate_report()
+    report_builder.print_report()
+    report_builder.save_report('report.json')
+
+    # predictions = pd.DataFrame.from_dict(predictions, orient='index')
+    # predictions.to_csv('predictions.csv', index=False)
 
 
 def stop_measurement():
