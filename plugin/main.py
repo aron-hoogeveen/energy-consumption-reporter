@@ -1,29 +1,23 @@
 import os
 import pickle
-import threading
-import time
-import numpy as np
 import pandas as pd
 from xgboost import XGBRegressor
 from auto_detect import get_cpu_info
 import logging
-from time import sleep
-import psutil
+from functools import lru_cache, wraps
 
-from report_builder import ReportBuilder
+from measure_process import MeasureProcess
 
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.INFO)
 
-running = True
-
 
 def train_model(cpu_chips, Z):
 
     df = pd.read_csv(
-        os.getcwd() + '/plugin/spec_power_model/data/spec_data_cleaned.csv')
+        os.getcwd() + '/plugin/data/spec_data_cleaned.csv')
 
     X = df.copy()
     X = pd.get_dummies(X, columns=['CPUMake', 'Architecture'])
@@ -41,31 +35,18 @@ def train_model(cpu_chips, Z):
 
     y = X.power
 
-    X = X[Z.columns]  # only select the supplied columns from the command line
+    X = X[Z.columns]
 
     logger.info(
         'Model will be trained on the following columns and restrictions: \n%s', Z)
 
-#    params = {
-#      'max_depth': 10,
-#      'learning_rate': 0.3037182109676833,
-#      'n_estimators': 792,
-#      'min_child_weight': 1,
-#      'random_state': 762
-#    }
-    params = {}
-
-    model = XGBRegressor(**params)
+    model = XGBRegressor()
     model.fit(X, y)
 
     return model
 
 
-def start_measurement(pid: int):
-    global running
-
-    now = time.time()
-
+def create_model():
     cpu_info = get_cpu_info(logger)
 
     Z = pd.DataFrame.from_dict({
@@ -84,67 +65,38 @@ def start_measurement(pid: int):
     Z = pd.get_dummies(Z, columns=['CPUMake', 'Architecture'])
     Z = Z.dropna(axis=1)
 
-    model: XGBRegressor
-    if not os.path.exists(os.getcwd() + '/model.pkl'):
-        logger.info('Training model')
-        model = train_model(cpu_info['cpu-chips'], Z)
-        pickle.dump(model, open('model.pkl', "wb"))
-    else:
-        logger.info('Loading model')
-        model = pickle.load(open('model.pkl', 'rb'))
+    logger.info('Training model')
+    model = train_model(cpu_info['cpu-chips'], Z)
+    pickle.dump(model, open('model.pkl', "wb"))
 
-    process = psutil.Process(pid)
-    predictions = {}
-    cpu_temps = []
-    while (running):
-        utilization = process.cpu_percent()
-        print("Utilization: ", utilization)
-        Z['utilization'] = float(utilization)
-        predictions[time.time()] = model.predict(Z)[0]
-        cpu_temps.append(psutil.sensors_temperatures())
-        time.sleep(0.2)
 
-    total_time = time.time() - now
-    print("Time: ", total_time)
+def energy_test(func):
+    @wraps(func)
+    def wrapper_func(*args, **kwargs):
+        if not os.path.exists(os.getcwd() + '/model.pkl'):
+            create_model()
 
-    print("Predictions: ", predictions)
+        process = MeasureProcess()
+        process.start()
 
-    # calculate energy consumption over prediction which is in Watts
-    energy = 0
-    last_time = 0
-    for key in predictions:
-        if last_time != 0:
-            energy += predictions[key] * (key - last_time)
-            last_time = key
+        func()
+
+        process.terminate()
+        process.join()
+
+    return wrapper_func
+
+
+@energy_test
+def test_func():
+    def fib(n):
+        if n <= 1:
+            return n
         else:
-            last_time = key
+            return fib(n-1) + fib(n-2)
 
-    print("Energy: ", energy)
-
-    report_builder = ReportBuilder(cpu_info, total_time, energy, float(np.mean(
-        list(predictions.values()))), "CPU Performance Report")
-    report_builder.generate_report()
-    report_builder.print_report()
-    report_builder.save_report('report.json')
-
-    # predictions = pd.DataFrame.from_dict(predictions, orient='index')
-    # predictions.to_csv('predictions.csv', index=False)
-
-
-def stop_measurement():
-    global running
-    running = False
-    return 'Measurement stopped'
+    fib(40)
 
 
 if __name__ == '__main__':
-    pid = os.getpid()
-
-    thread = threading.Thread(target=start_measurement, args=(pid,))
-    thread.start()
-
-    sleep(5)
-
-    stop_measurement()
-
-    thread.join()
+    test_func()

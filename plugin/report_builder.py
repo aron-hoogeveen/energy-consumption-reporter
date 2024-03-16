@@ -61,15 +61,13 @@ class ReportBuilder:
                 # TODO add the execution time of all test rounds
                 "execution_time": str(self.total_time),
                 # TODO add the energy consumption of all test rounds
-                "energy": str(self.energy),
+                "energy": "{:.4f}".format(self.energy),
                 # TODO add the power consumption of all test rounds
-                "power": str(self.power),
+                "power": "{:.4f}".format(self.power),
             }
         ]
 
         self.report["results"].update({"cases": cases})
-
-        print(self.report)
 
     def save_report(self, file_path):
         with open(file_path, 'w') as file:

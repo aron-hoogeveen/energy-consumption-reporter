@@ -47,6 +47,7 @@ def get_cpu_info(logger: logging.Logger, verbose: bool = False):
 
     try:
         cpuinfo = subprocess.check_output('lscpu', encoding='UTF-8')
+
         match = re.search(r'On-line CPU\(s\) list:\s*(0-)?(\d+)', cpuinfo)
         if match:
             data['cpu-threads'] = int(match.group(2))+1  # type: ignore
@@ -66,8 +67,9 @@ def get_cpu_info(logger: logging.Logger, verbose: bool = False):
             match = re.search(r'Core\(s\) per socket:\s*(\d+)', cpuinfo)
             if match:
                 cores_per_socket = int(match.group(1))
-                data['cores'] = cores_per_socket * data['cpu-chips'] # type: ignore
-                logger.info('Found cores: %d ', data['cores'])
+                cores = cores_per_socket * data['cpu-chips']
+                data['cpu-cores'] = cores  # type: ignore
+                logger.info('Found cores: %d ', data['cpu-cores'])
             else:
                 logger.info('Could not find Cores. Using default None')
 
@@ -80,19 +82,18 @@ def get_cpu_info(logger: logging.Logger, verbose: bool = False):
 
         match = re.search(r'Model name:.*Intel\(R\)', cpuinfo)
         if match:
-            data['make'] = 'intel'  # type: ignore
+            data['cpu-make'] = 'intel'  # type: ignore
             logger.info('Found Make: %s', data['make'])
 
         match = re.search(r'Model name:.*AMD ', cpuinfo)
         if match:
-            data['make'] = 'amd'  # type: ignore
-            logger.info('Found Make: %s', data['make'])
+            data['cpu-make'] = 'amd'  # type: ignore
+            logger.info('Found Make: %s', data['cpu-make'])
 
         match = re.search(r'Architecture:\s*(\w+)', cpuinfo)
         if match:
             data['architecture'] = match.group(1)  # type: ignore
             logger.info('Found Architecture: %s', data['architecture'])
-
     except Exception as err:
         logger.info('Exception: %s', err)
         logger.info('Could not check for CPU info.')
