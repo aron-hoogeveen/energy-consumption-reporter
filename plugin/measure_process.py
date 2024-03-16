@@ -1,10 +1,10 @@
 import logging
 import math
 from multiprocessing import Event, Process
+from multiprocessing.connection import Connection
 import pickle
 
 import numpy as np
-from report_builder import ReportBuilder
 from auto_detect import get_cpu_info
 import time
 import pandas as pd
@@ -14,10 +14,11 @@ logger = logging.getLogger(__name__)
 
 
 class MeasureProcess(Process):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, connection: Connection, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.daemon = True
         self.exit = Event()
+        self.connection = connection
 
     def run(self):
         now = time.time_ns()
@@ -68,12 +69,8 @@ class MeasureProcess(Process):
             else:
                 last_time = key
 
-        report_builder = ReportBuilder(cpu_info, total_time_ms, energy, float(np.mean(
-            list(predictions.values()))), "CPU Performance Report")
-        report_builder.generate_report()
-        report_builder.print_report()
-        report_builder.save_report('report.json')
+        self.connection.send((total_time_ms, energy, float(np.mean(
+            list(predictions.values())))))
 
     def terminate(self):
-        print('Shutting down')
         self.exit.set()

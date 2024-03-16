@@ -1,15 +1,12 @@
+import datetime
 import json
 import re
 import subprocess
-import time
+import psutil
 
 
 class ReportBuilder:
-    def __init__(self, cpu_info: dict, total_time: float, energy: float, power: float, name: str, description=""):
-        self.cpu_info = cpu_info
-        self.total_time = total_time
-        self.energy = energy
-        self.power = power
+    def __init__(self, name: str, description=""):
         self.name = name
         self.description = description
         self.version = 0
@@ -25,7 +22,7 @@ class ReportBuilder:
         # TODO: get the commit hash from the git repo
         self.report["results"].update({"commit": ""})
         self.report["results"].update(
-            {"date": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime())})
+            {"date": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")})
         self.report["results"].update({"model": "XGBRegressor"})
 
         # run sensors -j to get the temperature of the CPU
@@ -37,9 +34,6 @@ class ReportBuilder:
         cpuinfo = subprocess.check_output('lscpu', encoding='UTF-8')
         match = re.search(r'Model name:\s*(.*)', cpuinfo)
 
-        if not match:
-            match = None
-
         pc_name = subprocess.check_output(
             'hostname', encoding='UTF-8').removesuffix("\n")
 
@@ -47,27 +41,31 @@ class ReportBuilder:
             "PC_name": pc_name,
             "CPU_name": str(match.group(1) if match else "Unknown CPU"),
             "CPU_temp": str(temp),
-            "CPU_freq": str(self.cpu_info["cpu-freq"]),
+            "CPU_freq": str(psutil.cpu_freq().max),
         }
 
         self.report["results"].update({"hardware": hardware})
 
-        cases = [
-            {
-                "name": "test1",  # TODO add the name of the test
-                "result": "pass",  # TODO add the result of the test
-                "reason": "reason",  # TODO add the reason for the result
-                "N": "1",  # TODO add the number of tests
-                # TODO add the execution time of all test rounds
-                "execution_time": str(self.total_time),
-                # TODO add the energy consumption of all test rounds
-                "energy": "{:.4f}".format(self.energy),
-                # TODO add the power consumption of all test rounds
-                "power": "{:.4f}".format(self.power),
-            }
-        ]
+        self.report["results"].update({"cases": []})
 
-        self.report["results"].update({"cases": cases})
+    def add_case(self, time_list, energy_list, power_list, test_name, passed, reason):
+        energy_list = [
+            int(item*10000) / 10000 for item in energy_list]
+
+        power_list = [
+            int(item*10000) / 10000 for item in power_list]
+
+        case = {
+            "name": test_name,
+            "result": "pass" if passed else "fail",
+            "reason": reason,
+            "N": len(time_list),
+            "execution_time": time_list,
+            "energy": energy_list,
+            "power": power_list,
+        }
+
+        self.report["results"]["cases"].append(case)
 
     def save_report(self, file_path):
         with open(file_path, 'w') as file:
