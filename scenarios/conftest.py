@@ -1,5 +1,3 @@
-# custom_reporter.py
-
 import time
 import pytest
 
@@ -12,7 +10,13 @@ def pytest_runtest_makereport(item, call):
         method_name = item.name
         if method_name not in method_times:
             method_times[method_name] = []
-        method_times[method_name].append(call.stop - call.start)
+        # Define the number of repetitions
+        repetitions = 3
+        for _ in range(repetitions):
+            start_time = time.time()
+            item.ihook.pytest_pyfunc_call(pyfuncitem=item)
+            end_time = time.time()
+            method_times[method_name].append(end_time - start_time)
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
@@ -20,5 +24,5 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
         terminalreporter.write_sep('-', 'Time spent on each test method')
         for method_name, times in method_times.items():
             total_time = sum(times)
-            avg_time = total_time / len(times)
-            terminalreporter.write_line(f"{method_name}: Total Time - {total_time:.2f}s, Average Time - {avg_time:.2f}s")
+            mean_time = total_time / len(times)
+            terminalreporter.write_line(f"{method_name}: Mean Time - {mean_time:.2f}s")
