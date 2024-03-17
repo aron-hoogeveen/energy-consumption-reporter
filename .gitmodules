@@ -1,0 +1,3 @@
+[submodule "scenarios/spec-power-model"]
+	path = scenarios/spec-power-model
+	url = git@github.com:delanoflipse/spec-power-model.git
