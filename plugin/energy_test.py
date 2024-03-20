@@ -18,11 +18,23 @@ logger.setLevel(logging.INFO)
 
 
 class EnergyTest(metaclass=SingletonMeta):
-    def __init__(self) -> None:
+    def __init__(self, func_name="") -> None:
+        self.conn1, self.conn2 = Pipe()
+        self.process = None
+
+        self.func_name = func_name
+
         self.report_builder = ReportBuilder(
             name="CPU Performance Report"
         )
         self.report_builder.generate_report()
+
+    def __enter__(self):
+        return self.start()
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.stop(exc_type, exc_value, traceback)
+        self.report_builder.save_report()
 
     def train_model(self, cpu_chips, Z):
 
@@ -36,7 +48,6 @@ class EnergyTest(metaclass=SingletonMeta):
             logger.info(
                 'Training data will be restricted to the following amount of chips: %d', cpu_chips)
 
-            # Fit a model for every amount of CPUChips
             X = X[X.CPUChips == cpu_chips]
 
         if X.empty:
@@ -62,11 +73,9 @@ class EnergyTest(metaclass=SingletonMeta):
             'HW_CPUFreq': [cpu_info['cpu-freq']],
             'CPUThreads': [cpu_info['cpu-threads']],
             'CPUCores': [cpu_info['cpu-cores']],
-            # 'TDP': [cpu_info['tdp']],
-            'TDP': [105],
+            'TDP': [cpu_info['tdp']],
             'HW_MemAmountGB': [cpu_info['ram']],
-            # 'Architecture': [cpu_info['architecture']],
-            'Architecture': ['epyc-gen3'],  # Ryzen not supported
+            'Architecture': [cpu_info['architecture']],
             'CPUMake': [cpu_info['cpu-make']],
             'utilization': [0.0]
         })
@@ -83,12 +92,12 @@ class EnergyTest(metaclass=SingletonMeta):
         def decorate(func):
             @wraps(func)
             def wrapper_func(*args, **kwargs):
-                EnergyTest().test(func=func, times=times)
+                EnergyTest().test(func, times)
 
             return wrapper_func
         return decorate
 
-    def test(self, func, times=1):
+    def test(self, func, times):
         if not os.path.exists(os.getcwd() + '/model.pkl'):
             self.create_model()
 
@@ -101,7 +110,8 @@ class EnergyTest(metaclass=SingletonMeta):
         counter = 0
         stop = False
         while counter < times and not stop:
-            print(f"Running test {func.__name__} for the {counter+1} time")
+            print(
+                f"Running test {func.__name__} for the {counter+1} time")
             process = MeasureProcess(conn1)
             process.start()
             reason = ""
@@ -130,4 +140,30 @@ class EnergyTest(metaclass=SingletonMeta):
                                      passed=passed,
                                      reason=reason)
 
-        self.report_builder.save_report(os.getcwd() + '/report.json')
+        self.report_builder.save_report()
+
+    def start(self):
+        self.process = MeasureProcess(self.conn1)
+        self.process.start()
+
+    def stop(self, exc_type, exc_value, traceback):
+        if self.process is None:
+            return
+
+        self.process.terminate()
+        self.process.join()
+
+        energy_list = []
+        power_list = []
+        time_list = []
+        values = self.conn2.recv()
+        time_list.append(values[0])
+        energy_list.append(values[1])
+        power_list.append(values[2])
+
+        self.report_builder.add_case(time_list=time_list,
+                                     energy_list=energy_list,
+                                     power_list=power_list,
+                                     test_name=self.func_name,
+                                     passed=True if exc_type is None else False,
+                                     reason=str(exc_value) if exc_value is not None else "")

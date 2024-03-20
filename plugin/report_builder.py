@@ -9,6 +9,7 @@ class ReportBuilder:
     def __init__(self, name: str, description=""):
         self.name = name
         self.description = description
+        self.time = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
         self.version = 0
         self.report = {"results": {}}
 
@@ -17,15 +18,13 @@ class ReportBuilder:
 
         self.report["results"].update({"name": self.name})
         self.report["results"].update({"description": self.description})
-        self.report["results"].update({"version": str(self.version)})
+        self.report["results"].update({"version": self.version})
         self.report["results"].update({"software_version": "v0.1BETA"})
         # TODO: get the commit hash from the git repo
         self.report["results"].update({"commit": ""})
-        self.report["results"].update(
-            {"date": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")})
+        self.report["results"].update({"date": self.time})
         self.report["results"].update({"model": "XGBRegressor"})
 
-        # run sensors -j to get the temperature of the CPU
         sensor_data = json.loads(subprocess.check_output(
             ["sensors", "-j"]).decode("utf-8"))
         temp = sensor_data.get(
@@ -40,8 +39,8 @@ class ReportBuilder:
         hardware = {
             "PC_name": pc_name,
             "CPU_name": str(match.group(1) if match else "Unknown CPU"),
-            "CPU_temp": str(temp),
-            "CPU_freq": str(psutil.cpu_freq().max),
+            "CPU_temp": temp if temp else -1,
+            "CPU_freq": psutil.cpu_freq().max,
         }
 
         self.report["results"].update({"hardware": hardware})
@@ -67,7 +66,9 @@ class ReportBuilder:
 
         self.report["results"]["cases"].append(case)
 
-    def save_report(self, file_path):
+    def save_report(self, file_path=None):
+        if file_path is None:
+            file_path = "EnergyReport-" + self.time + ".json"
         with open(file_path, 'w') as file:
             file.write(json.dumps(self.report, indent=4))
 

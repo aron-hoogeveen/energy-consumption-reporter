@@ -1,7 +1,9 @@
+import os
 import subprocess
 import re
 import logging
 import math
+import pandas as pd
 
 
 def get_cpu_info(logger: logging.Logger, verbose: bool = False):
@@ -18,32 +20,6 @@ def get_cpu_info(logger: logging.Logger, verbose: bool = False):
         'cpu-chips': None,
         'architecture': None
     }
-
-    try:
-        file_path = '/sys/class/powercap/intel-rapl/intel-rapl:0/name'
-        with open(file_path, 'r', encoding='UTF-8') as file:
-            domain_name = file.read().strip()
-            if domain_name != 'package-0':
-                raise RuntimeError(
-                    f"Domain /sys/class/powercap/intel-rapl/intel-rapl:0/name was not package-0, but {domain_name}")
-
-        file_path = '/sys/class/powercap/intel-rapl/intel-rapl:0/constraint_0_name'
-        with open(file_path, 'r', encoding='UTF-8') as file:
-            constraint_name = file.read().strip()
-            if constraint_name != 'long_term':
-                raise RuntimeError(
-                    f"Constraint /sys/class/powercap/intel-rapl/intel-rapl:0/constraint_0_name was not long_term, but {constraint_name}")
-
-        file_path = '/sys/class/powercap/intel-rapl/intel-rapl:0/constraint_0_max_power_uw'
-        with open(file_path, 'r', encoding='UTF-8') as file:
-            tdp = file.read()
-            data['tdp'] = int(tdp) / 1_000_000  # type: ignore
-
-        logger.info('Found TDP: %d W', data['tdp'])
-    except Exception as err:
-        logger.info('Exception: %s', err)
-        logger.info(
-            'Could not read RAPL powercapping info from /sys/class/powercap/intel-rapl')
 
     try:
         cpuinfo = subprocess.check_output('lscpu', encoding='UTF-8')
@@ -80,20 +56,45 @@ def get_cpu_info(logger: logging.Logger, verbose: bool = False):
         else:
             logger.info('Could not find Frequency. Using default None')
 
-        match = re.search(r'Model name:.*Intel\(R\)', cpuinfo)
+        match = re.search(r'Model name:\s*(.*)', cpuinfo)
         if match:
-            data['cpu-make'] = 'intel'  # type: ignore
-            logger.info('Found Make: %s', data['make'])
-
-        match = re.search(r'Model name:.*AMD ', cpuinfo)
-        if match:
-            data['cpu-make'] = 'amd'  # type: ignore
+            if 'Intel' in match.group(1):
+                data['cpu-make'] = 'intel'  # type: ignore
+            elif 'AMD' in match.group(1):
+                data['cpu-make'] = 'amd'  # type: ignore
             logger.info('Found Make: %s', data['cpu-make'])
+
+            cpu = match.group(1)
+            tdp_list = pd.read_csv(
+                os.getcwd() + '/plugin/data/cpu_power.csv', sep=',')
+
+            logger.info(cpu)
+            tdp = tdp_list[tdp_list.apply(
+                lambda row: row['Name'] in cpu, axis=1)]
+            tdp = tdp[tdp['Name'].apply(len) == tdp['Name'].apply(len).max()]
+            logger.info('Found TDP: %s', tdp)
+            if not tdp.empty:
+                data['tdp'] = tdp['TDP'].values[0]  # type: ignore
+                logger.info('Found TDP: %s', data['tdp'])
+            else:
+                logger.info('Could not find TDP. Using default 100')
+                data['tdp'] = 100  # type: ignore
 
         match = re.search(r'Architecture:\s*(\w+)', cpuinfo)
         if match:
             data['architecture'] = match.group(1)  # type: ignore
             logger.info('Found Architecture: %s', data['architecture'])
+            spec_data = pd.read_csv(
+                os.getcwd() + '/plugin/data/spec_data_cleaned.csv', sep=',')
+            if data['architecture'] not in spec_data['Architecture'].unique():
+                if data['cpu-make'] == 'intel':
+                    logger.info(
+                        'Architecture not in training data. Using default xeon.')
+                    data['architecture'] = 'xeon'  # type: ignore
+                elif data['cpu-make'] == 'amd':
+                    logger.info(
+                        'Architecture not in training data. Using default epyc-gen3.')
+                    data['architecture'] = 'epyc-gen3'  # type: ignore
     except Exception as err:
         logger.info('Exception: %s', err)
         logger.info('Could not check for CPU info.')
