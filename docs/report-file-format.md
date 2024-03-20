@@ -25,14 +25,14 @@ Resulting in the following basic template:
 				"result": "pass",
 				"reason": "",
 				<!-- other test-level information -->,
-				"_userDefinedField": "<some value>",
+				"_userDefinedField": "<some value>"
 			},
 			{
 				"name": "<another test method name",
 				"result": "fail",
 				"reason": "AssertionError: Invalid Operation",
 				<!-- other test-level information -->,
-				"_userDefinedField": "<some value>",
+				"_userDefinedField": "<some value>"
 			}
 		]
 	}
@@ -124,7 +124,7 @@ The previews identified data fields resulted in the following JSON template:
 			"PC_name": "<value>",
 			"CPU_name": "<value>",
 			"CPU_temp": "<value>",
-			"CPU_freq": "<value>",
+			"CPU_freq": "<value>"
 		},
 		"cases": [
 			{
@@ -140,7 +140,7 @@ The previews identified data fields resulted in the following JSON template:
 				"energy": [
 					"<joules>",
 					"<joules>",
-					"<joules>",
+					"<joules>"
 				],
 				"power": [
 					"<Watts>",
@@ -166,7 +166,7 @@ The previews identified data fields resulted in the following JSON template:
 				"energy": [
 					"<joules>",
 					"<joules>",
-					"<joules>",
+					"<joules>"
 				],
 				"power": [
 					"<Watts>",
