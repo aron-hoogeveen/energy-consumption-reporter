@@ -24,7 +24,7 @@ class ReportBuilder:
         self.report["results"].update({"commit": ""})
         self.report["results"].update({"date": self.time})
         self.report["results"].update({"model": "XGBRegressor"})
-
+    
         sensor_data = json.loads(subprocess.check_output(
             ["sensors", "-j"]).decode("utf-8"))
         temp = sensor_data.get(
