@@ -63,6 +63,8 @@ class EnergyTest(metaclass=SingletonMeta):
             process.start()
             reason = ""
 
+            logging.debug(
+                f"Running method {func.__name__}...")
             try:
                 func()
             except AssertionError as e:
