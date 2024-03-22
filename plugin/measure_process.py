@@ -16,12 +16,11 @@ class MeasureProcess(Process):
 
     def run(self):
         try:
-            now = time.time_ns()
-            
             if self.model is None or not self.model.is_setup:
                 raise Exception("Model not setup!")
 
             # measurements
+            start = time.time_ns()
             measurements: list[tuple[int, float]] = []
             cpu_temps = []
             
@@ -30,8 +29,10 @@ class MeasureProcess(Process):
             parent_process = this_process.parent()
             
             while not self.exit.is_set():
+                # measure the next 0.2 seconds
                 utilization = parent_process.cpu_percent(
-                    interval=0.1) / psutil.cpu_count()
+                    interval=0.2) / psutil.cpu_count()
+                
                 if utilization == 0 or utilization > 100:
                     continue
                 
@@ -39,32 +40,32 @@ class MeasureProcess(Process):
                 wattage = self.model.predict(float(utilization))
                 measurement = (now, wattage)
                 measurements.append(measurement)
+                
                 try:
                     cpu_temps.append(psutil.sensors_temperatures())
                 except:
                     pass
-                time.sleep(0.2)
 
-            total_time = time.time_ns() - now
+            total_time = time.time_ns() - start
             total_time_ms = math.ceil(total_time / 1_000_000)
 
             # convert measurements (W) to energy (J)
             energy = 0
-            last_time = 0
+            last_time = start
             for (t, wattage) in measurements:
-                if last_time == 0:
-                    last_time = t
-                else:
-                    delta_t = t - last_time
-                    energy += wattage * delta_t
-                    last_time = t
+                delta_t = t - last_time
+                delta_t_s = delta_t / 1_000_000_000
+                energy += wattage * delta_t_s
+                last_time = t
 
             # get average wattage
             wattages = [x[1] for x in measurements]
             avg_wattage = float(np.mean(
                 list(wattages)))
+            avg_temp = float(np.mean(
+                list(cpu_temps)))
 
-            self.connection.send((total_time_ms, energy, avg_wattage))
+            self.connection.send((total_time_ms, energy, avg_wattage, avg_temp))
         except Exception as e:
             self.connection.send(e)
 
