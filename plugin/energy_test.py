@@ -16,11 +16,9 @@ logger.setLevel(logging.INFO)
 
 class EnergyTest(metaclass=SingletonMeta):
 
-    def __init__(self, test_id="", energy_model: EnergyModel = None) -> None:
+    def __init__(self, energy_model: EnergyModel = None) -> None:
         self.conn1, self.conn2 = Pipe()
         self.process = None
-
-        self.test_id = test_id
         self.energy_model = energy_model
 
         # self.report_builder = ReportBuilder(
@@ -45,7 +43,7 @@ class EnergyTest(metaclass=SingletonMeta):
             return wrapper_func
         return decorate
 
-    def test(self, func, times):
+    def test(self, func, times, test_id:str = None):
         if self.energy_model is None or not self.energy_model.is_setup:
             raise Exception("Must provide a trained model")
 
@@ -55,10 +53,12 @@ class EnergyTest(metaclass=SingletonMeta):
         power_list = []
         time_list = []
         passed = True
+        if test_id is None:
+            test_id = func.__name__
 
         for i in range(times):
             nth = i + 1
-            logging.debug(f"Test {self.test_id}, Iteration: {nth}")
+            logging.debug(f"Test {test_id}, Iteration: {nth}")
             process = MeasureProcess(conn1, self.energy_model)
             process.start()
             reason = ""
