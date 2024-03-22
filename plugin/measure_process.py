@@ -1,62 +1,44 @@
-import logging
 import math
 from multiprocessing import Event, Process
 from multiprocessing.connection import Connection
-import pickle
 
-import numpy as np
-from .auto_detect import get_cpu_info
+from  .energy_model import EnergyModel
 import time
-import pandas as pd
 import psutil
-
-logger = logging.getLogger(__name__)
-
-
+import numpy as np
 class MeasureProcess(Process):
-    def __init__(self, connection: Connection, *args, **kwargs):
+    def __init__(self, connection: Connection, model: EnergyModel, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.daemon = True
         self.exit = Event()
+        self.model = model
         self.connection = connection
 
     def run(self):
         try:
             now = time.time_ns()
+            
+            if self.model is None or not self.model.is_setup:
+                raise Exception("Model not setup!")
 
-            cpu_info = get_cpu_info(logger)
-            logger.debug(f"CPU info: {cpu_info}")
-
-            Z = pd.DataFrame.from_dict({
-                'HW_CPUFreq': [cpu_info.freq],
-                'CPUThreads': [cpu_info.threads],
-                'CPUCores': [cpu_info.cores],
-                # 'TDP': [cpu_info.tdp],
-                'TDP': [105],
-                'HW_MemAmountGB': [cpu_info.mem],
-                # 'Architecture': [cpu_info.architecture],
-                'Architecture': ['epyc-gen3'],  # Ryzen not supported
-                'CPUMake': [cpu_info.make],
-                'utilization': [0.0]
-            })
-
-            Z = pd.get_dummies(Z, columns=['CPUMake', 'Architecture'])
-            Z = Z.dropna(axis=1)
-
-            model = pickle.load(open('model.pkl', 'rb'))
-
-            predictions = {}
+            # measurements
+            measurements: list[tuple[int, float]] = []
             cpu_temps = []
+            
+            # get parent process
             this_process = psutil.Process()
             parent_process = this_process.parent()
-            logging.debug(f"Parent process: {parent_process}")
+            
             while not self.exit.is_set():
                 utilization = parent_process.cpu_percent(
                     interval=0.1) / psutil.cpu_count()
                 if utilization == 0 or utilization > 100:
                     continue
-                Z['utilization'] = float(utilization)
-                predictions[time.time()] = model.predict(Z)[0]
+                
+                now = time.time_ns()
+                wattage = self.model.predict(float(utilization))
+                measurement = (now, wattage)
+                measurements.append(measurement)
                 try:
                     cpu_temps.append(psutil.sensors_temperatures())
                 except:
@@ -66,17 +48,23 @@ class MeasureProcess(Process):
             total_time = time.time_ns() - now
             total_time_ms = math.ceil(total_time / 1_000_000)
 
+            # convert measurements (W) to energy (J)
             energy = 0
             last_time = 0
-            for key in predictions:
-                if last_time != 0:
-                    energy += predictions[key] * (key - last_time)
-                    last_time = key
+            for (t, wattage) in measurements:
+                if last_time == 0:
+                    last_time = t
                 else:
-                    last_time = key
+                    delta_t = t - last_time
+                    energy += wattage * delta_t
+                    last_time = t
 
-            self.connection.send((total_time_ms, energy, float(np.mean(
-                list(predictions.values())))))
+            # get average wattage
+            wattages = [x[1] for x in measurements]
+            avg_wattage = float(np.mean(
+                list(wattages)))
+
+            self.connection.send((total_time_ms, energy, avg_wattage))
         except Exception as e:
             self.connection.send(e)
 

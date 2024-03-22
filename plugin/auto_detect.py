@@ -178,7 +178,7 @@ def get_cpu_make():
     else:
         return 'unknown'
 
-def get_cpu_info(logger):
+def get_cpu_info(logger: logging):
     if platform.system() == 'Linux':
         return get_cpu_info_linux(logger)
     else:
@@ -194,7 +194,7 @@ def get_cpu_info(logger):
         tdp = 0  # TODO: find a way to get this info
         mem = math.ceil(psutil.virtual_memory().total / 1024 / 1024 / 1024)
         make = get_cpu_make()
-        architecture = 'epyc-gen3'
+        architecture = None # TODO: find a way to get this info
 
         # write summary to logger
         logger.info('CPU info for: %s', platform.processor())
