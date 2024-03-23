@@ -42,3 +42,16 @@ def test_func3():
 
         assert fib(35) == 9227465, "Not equal"
 ```
+
+You can set up the following custom parameters:
+- model
+- report name
+- report description
+- whether to save a report (in JSON format)
+
+``` python
+EnergyTest().set_model(EnergyModel)
+EnergyTest().set_report_name("Custom Report Name")
+EnergyTest().set_report_description("Custom Report Description")
+EnergyTest().set_save_report(True)
+```
