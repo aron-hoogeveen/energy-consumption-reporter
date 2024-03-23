@@ -1,37 +1,49 @@
+import inspect
 from multiprocessing import Pipe
-import os
+from multiprocessing.managers import BaseManager
+import time
+from typing import Any, Optional
 
-from .energy_model import EnergyModel
+from energy_model import EnergyModel
 import logging
 from functools import wraps
 
-from .measure_process import MeasureProcess
-from .singleton import SingletonMeta
-from .report_builder import ReportBuilder
+from measure_process import MeasureProcess
+from singleton import SingletonMeta
+from report_builder import ReportBuilder
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 
 class EnergyTest(metaclass=SingletonMeta):
 
-    def __init__(self, energy_model: EnergyModel = None) -> None:
+    def __init__(self) -> None:
         self.conn1, self.conn2 = Pipe()
         self.process = None
-        self.energy_model = energy_model
+        self.save_report = False
 
-        # self.report_builder = ReportBuilder(
-        #     name="CPU Performance Report"
-        # )
-        # self.report_builder.generate_report()
+        BaseManager.register('model', EnergyModel)
+        manager = BaseManager()
+        manager.start()
+        self.model = manager.model()  # type: ignore
+
+        self.report_name = "CPU Energy Test Report"
+
+        self.report_builder = ReportBuilder(
+            name=self.report_name,
+            model_name="EnergyModel",
+        )
+        self.report_builder.generate_report()
 
     def __enter__(self):
         return self.start()
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.stop(exc_type, exc_value, traceback)
-        # self.report_builder.save_report()
+        if self.save_report:
+            self.report_builder.save_report()
 
     @staticmethod
     def energy_test(times=1):
@@ -43,23 +55,41 @@ class EnergyTest(metaclass=SingletonMeta):
             return wrapper_func
         return decorate
 
-    def test(self, func, times, test_id:str = None):
-        if self.energy_model is None or not self.energy_model.is_setup:
-            raise Exception("Must provide a trained model")
+    # Set custom model (Default = EnergyModel)
+    def set_model(self, model):
+        BaseManager.register("model", model)
+        manager = BaseManager()
+        manager.start()
+        self.model = manager.model()  # type: ignore
+        self.report_builder.set_model_name(model.__name__)
 
-        conn1, conn2 = Pipe()
+    # Set whether to save report (Default = False)
+    def set_save_report(self, save_report: bool):
+        self.save_report = save_report
 
+    # Set custom report name
+    def set_report_name(self, name: str):
+        self.report_name = name
+        self.report_builder.set_name(name)
+
+    # Set custom report description
+    def set_report_description(self, description: str):
+        self.report_builder.set_description(description)
+
+    def test(self, func, times):
         energy_list = []
         power_list = []
         time_list = []
         passed = True
-        if test_id is None:
-            test_id = func.__name__
-
+        stop = False
         for i in range(times):
+            if stop:
+                break
+
             nth = i + 1
-            logging.debug(f"Test {test_id}, Iteration: {nth}")
-            process = MeasureProcess(conn1, self.energy_model)
+            logging.debug(f"Test {func.__name__}, Iteration: {nth}")
+
+            process = MeasureProcess(self.conn1, self.model)
             process.start()
             reason = ""
 
@@ -70,13 +100,14 @@ class EnergyTest(metaclass=SingletonMeta):
             except AssertionError as e:
                 reason = str(e)
                 passed = False
-                break
+                stop = True
 
             process.terminate()
             process.join()
+
             logging.debug(
                 f"Done, waiting for values from measurement process...")
-            values = conn2.recv()
+            values = self.conn2.recv()
 
             if isinstance(values, Exception):
                 raise values
@@ -85,20 +116,20 @@ class EnergyTest(metaclass=SingletonMeta):
             time_list.append(values[0])
             energy_list.append(values[1])
             power_list.append(values[2])
-            
 
-        # self.report_builder.add_case(time_list=time_list,
-        #                              energy_list=energy_list,
-        #                              power_list=power_list,
-        #                              test_name=func.__name__,
-        #                              passed=passed,
-        #                              reason=reason)
+        self.report_builder.add_case(time_list=time_list,
+                                     energy_list=energy_list,
+                                     power_list=power_list,
+                                     test_name=func.__name__,
+                                     passed=passed,
+                                     reason=reason)
 
-        # self.report_builder.save_report()
+        if self.save_report:
+            self.report_builder.save_report()
         return {"time": time_list, "energy": energy_list, "power": power_list}
 
     def start(self):
-        self.process = MeasureProcess(self.conn1)
+        self.process = MeasureProcess(self.conn1, self.model)
         self.process.start()
 
     def stop(self, exc_type, exc_value, traceback):
@@ -108,6 +139,10 @@ class EnergyTest(metaclass=SingletonMeta):
         self.process.terminate()
         self.process.join()
 
+        stack = inspect.stack()
+        stack = stack[1:6]
+        func = stack[1].function
+
         energy_list = []
         power_list = []
         time_list = []
@@ -116,9 +151,9 @@ class EnergyTest(metaclass=SingletonMeta):
         energy_list.append(values[1])
         power_list.append(values[2])
 
-        # self.report_builder.add_case(time_list=time_list,
-        #                              energy_list=energy_list,
-        #                              power_list=power_list,
-        #                              test_name=self.test_id,
-        #                              passed=True if exc_type is None else False,
-        #                              reason=str(exc_value) if exc_value is not None else "")
+        self.report_builder.add_case(time_list=time_list,
+                                     energy_list=energy_list,
+                                     power_list=power_list,
+                                     test_name=func,
+                                     passed=True if exc_type is None else False,
+                                     reason=str(exc_value) if exc_value is not None else "")

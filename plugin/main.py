@@ -1,5 +1,6 @@
 import logging
 from energy_test import EnergyTest
+from energy_model import EnergyModel
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
@@ -14,7 +15,7 @@ def test_func():
         else:
             return fib(n-1) + fib(n-2)
 
-    assert fib(35) == 9227465, "Not equal"
+    assert fib(37) == 24157817, "Not equal"
 
 
 @EnergyTest.energy_test(2)
@@ -29,7 +30,7 @@ def test_func2():
 
 
 def test_func3():
-    with EnergyTest(func_name="test_func3") as test:
+    with EnergyTest() as test:
         def fib(n):
             if n <= 1:
                 return n
@@ -40,6 +41,11 @@ def test_func3():
 
 
 if __name__ == '__main__':
+    # EnergyTest().set_model(EnergyModel)
+    EnergyTest().set_report_name("Custom Report Name")
+    EnergyTest().set_report_description("Custom Report Description")
+    EnergyTest().set_save_report(True)
+
     test_func()
     test_func2()
     test_func3()
