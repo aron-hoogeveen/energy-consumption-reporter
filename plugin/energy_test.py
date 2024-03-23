@@ -1,16 +1,13 @@
 from multiprocessing import Pipe
 import os
-import pickle
-import pandas as pd
-from xgboost import XGBRegressor
-from auto_detect import get_cpu_info
+
+from .energy_model import EnergyModel
 import logging
 from functools import wraps
 
-from measure_process import MeasureProcess
-from singleton import SingletonMeta
-from report_builder import ReportBuilder
-
+from .measure_process import MeasureProcess
+from .singleton import SingletonMeta
+from .report_builder import ReportBuilder
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
@@ -18,74 +15,23 @@ logger.setLevel(logging.INFO)
 
 
 class EnergyTest(metaclass=SingletonMeta):
-    def __init__(self, func_name="") -> None:
+
+    def __init__(self, energy_model: EnergyModel = None) -> None:
         self.conn1, self.conn2 = Pipe()
         self.process = None
+        self.energy_model = energy_model
 
-        self.func_name = func_name
-
-        self.report_builder = ReportBuilder(
-            name="CPU Performance Report"
-        )
-        self.report_builder.generate_report()
+        # self.report_builder = ReportBuilder(
+        #     name="CPU Performance Report"
+        # )
+        # self.report_builder.generate_report()
 
     def __enter__(self):
         return self.start()
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.stop(exc_type, exc_value, traceback)
-        self.report_builder.save_report()
-
-    def train_model(self, cpu_chips, Z):
-
-        df = pd.read_csv(
-            os.getcwd() + '/plugin/data/spec_data_cleaned.csv')
-
-        X = df.copy()
-        X = pd.get_dummies(X, columns=['CPUMake', 'Architecture'])
-
-        if cpu_chips:
-            logger.info(
-                'Training data will be restricted to the following amount of chips: %d', cpu_chips)
-
-            X = X[X.CPUChips == cpu_chips]
-
-        if X.empty:
-            raise RuntimeError(
-                f"The training data does not contain any servers with a chips amount ({cpu_chips}). Please select a different amount.")
-
-        y = X.power
-
-        X = X[Z.columns]
-
-        logger.info(
-            'Model will be trained on the following columns and restrictions: \n%s', Z)
-
-        model = XGBRegressor()
-        model.fit(X, y)
-
-        return model
-
-    def create_model(self):
-        cpu_info = get_cpu_info(logger)
-
-        Z = pd.DataFrame.from_dict({
-            'HW_CPUFreq': [cpu_info['cpu-freq']],
-            'CPUThreads': [cpu_info['cpu-threads']],
-            'CPUCores': [cpu_info['cpu-cores']],
-            'TDP': [cpu_info['tdp']],
-            'HW_MemAmountGB': [cpu_info['ram']],
-            'Architecture': [cpu_info['architecture']],
-            'CPUMake': [cpu_info['cpu-make']],
-            'utilization': [0.0]
-        })
-
-        Z = pd.get_dummies(Z, columns=['CPUMake', 'Architecture'])
-        Z = Z.dropna(axis=1)
-
-        logger.info('Training model')
-        model = self.train_model(cpu_info['cpu-chips'], Z)
-        pickle.dump(model, open('model.pkl', "wb"))
+        # self.report_builder.save_report()
 
     @staticmethod
     def energy_test(times=1):
@@ -97,9 +43,9 @@ class EnergyTest(metaclass=SingletonMeta):
             return wrapper_func
         return decorate
 
-    def test(self, func, times):
-        if not os.path.exists(os.getcwd() + '/model.pkl'):
-            self.create_model()
+    def test(self, func, times, test_id:str = None):
+        if self.energy_model is None or not self.energy_model.is_setup:
+            raise Exception("Must provide a trained model")
 
         conn1, conn2 = Pipe()
 
@@ -107,40 +53,49 @@ class EnergyTest(metaclass=SingletonMeta):
         power_list = []
         time_list = []
         passed = True
-        counter = 0
-        stop = False
-        while counter < times and not stop:
-            print(
-                f"Running test {func.__name__} for the {counter+1} time")
-            process = MeasureProcess(conn1)
+        if test_id is None:
+            test_id = func.__name__
+
+        for i in range(times):
+            nth = i + 1
+            logging.debug(f"Test {test_id}, Iteration: {nth}")
+            process = MeasureProcess(conn1, self.energy_model)
             process.start()
             reason = ""
 
+            logging.debug(
+                f"Running method {func.__name__}...")
             try:
                 func()
             except AssertionError as e:
                 reason = str(e)
                 passed = False
-                stop = True
+                break
 
             process.terminate()
             process.join()
-
+            logging.debug(
+                f"Done, waiting for values from measurement process...")
             values = conn2.recv()
+
+            if isinstance(values, Exception):
+                raise values
+
+            logging.debug(f"Values: {values}")
             time_list.append(values[0])
             energy_list.append(values[1])
             power_list.append(values[2])
+            
 
-            counter += 1
+        # self.report_builder.add_case(time_list=time_list,
+        #                              energy_list=energy_list,
+        #                              power_list=power_list,
+        #                              test_name=func.__name__,
+        #                              passed=passed,
+        #                              reason=reason)
 
-        self.report_builder.add_case(time_list=time_list,
-                                     energy_list=energy_list,
-                                     power_list=power_list,
-                                     test_name=func.__name__,
-                                     passed=passed,
-                                     reason=reason)
-
-        self.report_builder.save_report()
+        # self.report_builder.save_report()
+        return {"time": time_list, "energy": energy_list, "power": power_list}
 
     def start(self):
         self.process = MeasureProcess(self.conn1)
@@ -161,9 +116,9 @@ class EnergyTest(metaclass=SingletonMeta):
         energy_list.append(values[1])
         power_list.append(values[2])
 
-        self.report_builder.add_case(time_list=time_list,
-                                     energy_list=energy_list,
-                                     power_list=power_list,
-                                     test_name=self.func_name,
-                                     passed=True if exc_type is None else False,
-                                     reason=str(exc_value) if exc_value is not None else "")
+        # self.report_builder.add_case(time_list=time_list,
+        #                              energy_list=energy_list,
+        #                              power_list=power_list,
+        #                              test_name=self.test_id,
+        #                              passed=True if exc_type is None else False,
+        #                              reason=str(exc_value) if exc_value is not None else "")
