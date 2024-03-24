@@ -145,39 +145,45 @@ def get_cpu_make():
 
 
 def get_physical_cpu_socket_count():
-    pythoncom.CoInitialize()
-    c = wmi.WMI()
-    sockets = set()
-    for processor in c.Win32_Processor():
-        sockets.add(processor.SocketDesignation)
-    pythoncom.CoUninitialize()
-    return len(sockets)
+    try:
+        pythoncom.CoInitialize()
+        c = wmi.WMI()
+        sockets = set()
+        for processor in c.Win32_Processor():
+            sockets.add(processor.SocketDesignation)
+        pythoncom.CoUninitialize()
+        return len(sockets)
+    except:
+        return None
 
 
 def get_tdp():
-    pythoncom.CoInitialize()
-    c = wmi.WMI()
-    for processor in c.Win32_Processor():
-        name = processor.Name
-        name = name.replace('(R)', '')
-        name = name.replace('(TM)', '')
-        name = name.strip()
-        tdp_list = pd.read_csv(
-            os.path.join(os.path.dirname(os.path.realpath(
-                __file__)), "data", "cpu_power.csv"), sep=',')
+    try:
+        pythoncom.CoInitialize()
+        c = wmi.WMI()
+        for processor in c.Win32_Processor():
+            name = processor.Name
+            name = name.replace('(R)', '')
+            name = name.replace('(TM)', '')
+            name = name.strip()
+            tdp_list = pd.read_csv(
+                os.path.join(os.path.dirname(os.path.realpath(
+                    __file__)), "data", "cpu_power.csv"), sep=',')
 
-        tdp = tdp_list[tdp_list.apply(
-            lambda row: row['Name'] in name, axis=1)]
-        tdp = tdp[tdp['Name'].apply(len) == tdp['Name'].apply(len).max()]
-        if not tdp.empty:
-            tdp = tdp['TDP'].values[0]
-        else:
-            tdp = 100
+            tdp = tdp_list[tdp_list.apply(
+                lambda row: row['Name'] in name, axis=1)]
+            tdp = tdp[tdp['Name'].apply(len) == tdp['Name'].apply(len).max()]
+            if not tdp.empty:
+                tdp = tdp['TDP'].values[0]
+            else:
+                tdp = 100
+            pythoncom.CoUninitialize()
+
+            return tdp
+
         pythoncom.CoUninitialize()
-
-        return tdp
-
-    pythoncom.CoUninitialize()
+    except:
+        pass
     return None
 
 

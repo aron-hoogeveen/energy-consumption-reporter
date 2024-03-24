@@ -1,21 +1,21 @@
 import inspect
+import logging
 from multiprocessing import Pipe
 from multiprocessing.managers import BaseManager
 
-from energy_model import EnergyModel
-import logging
+from .energy_model import EnergyModel
 from functools import wraps
 
-from measure_process import MeasureProcess
-from singleton import SingletonMeta
-from report_builder import ReportBuilder
+from .measure_process import MeasureProcess
+from .singleton import SingletonMeta
+from .report_builder import ReportBuilder
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.DEBUG)
 
 
-class EnergyTest(metaclass=SingletonMeta):
+class EnergyTester(metaclass=SingletonMeta):
 
     def __init__(self) -> None:
         self.conn1, self.conn2 = Pipe()
@@ -48,7 +48,7 @@ class EnergyTest(metaclass=SingletonMeta):
         def decorate(func):
             @wraps(func)
             def wrapper_func(*args, **kwargs):
-                EnergyTest().test(func, times)
+                EnergyTester().test(func, times)
 
             return wrapper_func
         return decorate
@@ -74,7 +74,10 @@ class EnergyTest(metaclass=SingletonMeta):
     def set_report_description(self, description: str):
         self.report_builder.set_description(description)
 
-    def test(self, func, times):
+    def test(self, func, times, func_name=None):
+        if func_name is None:
+            func.__name__ = func_name
+            
         energy_list = []
         power_list = []
         time_list = []
@@ -85,14 +88,14 @@ class EnergyTest(metaclass=SingletonMeta):
                 break
 
             nth = i + 1
-            logging.debug(f"Test {func.__name__}, Iteration: {nth}")
+            logging.debug(f"Test {func_name}, Iteration: {nth}")
 
             process = MeasureProcess(self.conn1, self.model)
             process.start()
             reason = ""
 
             logging.debug(
-                f"Running method {func.__name__}...")
+                f"Running method {func_name}...")
             try:
                 func()
             except AssertionError as e:
@@ -118,7 +121,7 @@ class EnergyTest(metaclass=SingletonMeta):
         self.report_builder.add_case(time_list=time_list,
                                      energy_list=energy_list,
                                      power_list=power_list,
-                                     test_name=func.__name__,
+                                     test_name=func_name,
                                      passed=passed,
                                      reason=reason)
 

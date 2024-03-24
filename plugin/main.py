@@ -1,5 +1,5 @@
 import logging
-from energy_test import EnergyTest
+from pytest_energy_reporter.energy_consumption_reporter.plugin.energy_tester import EnergyTester
 from energy_model import EnergyModel
 
 logger = logging.getLogger(__name__)
@@ -7,7 +7,7 @@ logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.INFO)
 
 
-@EnergyTest.energy_test(2)
+@EnergyTester.energy_test(2)
 def test_func():
     def fib(n):
         if n <= 1:
@@ -18,7 +18,7 @@ def test_func():
     assert fib(37) == 24157817, "Not equal"
 
 
-@EnergyTest.energy_test(2)
+@EnergyTester.energy_test(2)
 def test_func2():
     def fib(n):
         if n <= 1:
@@ -30,7 +30,7 @@ def test_func2():
 
 
 def test_func3():
-    with EnergyTest() as test:
+    with EnergyTester() as test:
         def fib(n):
             if n <= 1:
                 return n
@@ -42,9 +42,9 @@ def test_func3():
 
 if __name__ == '__main__':
     # EnergyTest().set_model(EnergyModel)
-    EnergyTest().set_report_name("Custom Report Name")
-    EnergyTest().set_report_description("Custom Report Description")
-    EnergyTest().set_save_report(True)
+    EnergyTester().set_report_name("Custom Report Name")
+    EnergyTester().set_report_description("Custom Report Description")
+    EnergyTester().set_save_report(True)
 
     test_func()
     test_func2()

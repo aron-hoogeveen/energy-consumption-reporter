@@ -4,10 +4,6 @@ import os
 import re
 import subprocess
 import psutil
-try:
-    import wmi
-except ImportError:
-    pass
 
 
 class ReportBuilder:
@@ -44,29 +40,35 @@ class ReportBuilder:
         self.report["results"].update({"date": self.time})
         self.report["results"].update({"model": self.model_name})
 
-        if psutil.WINDOWS:
-            c = wmi.WMI()
-            thermal_zone_info = c.query(
-                "SELECT * FROM Win32_PerfFormattedData_Counters_ThermalZoneInformation WHERE Name LIKE '%CPU%'")
-            temp = int(thermal_zone_info[0].Temperature - 273.15)
+        cpu_name = "Unknown CPU"
+        temp = -1
+        try:
+            if psutil.WINDOWS:
+                import wmi
+                c = wmi.WMI()
+                thermal_zone_info = c.query(
+                    "SELECT * FROM Win32_PerfFormattedData_Counters_ThermalZoneInformation WHERE Name LIKE '%CPU%'")
+                temp = int(thermal_zone_info[0].Temperature - 273.15)
 
-            cpu_name = c.Win32_Processor(
-            )[0].Name if c.Win32_Processor() else "Unknown CPU"
-        else:
-            sensor_data = json.loads(subprocess.check_output(
-                ["sensors", "-j"]).decode("utf-8"))
-            temp = int(sensor_data.get(
-                "k10temp-pci-00c3").get("Tctl").get("temp1_input"))
-            cpuinfo = subprocess.check_output('lscpu', encoding='UTF-8')
-            match = re.search(r'Model name:\s*(.*)', cpuinfo)
-            cpu_name = str(match.group(1) if match else "Unknown CPU")
+                cpu_name = c.Win32_Processor(
+                )[0].Name if c.Win32_Processor() else "Unknown CPU"
+            else:
+                sensor_data = json.loads(subprocess.check_output(
+                    ["sensors", "-j"]).decode("utf-8"))
+                temp = int(sensor_data.get(
+                    "k10temp-pci-00c3").get("Tctl").get("temp1_input"))
+                cpuinfo = subprocess.check_output('lscpu', encoding='UTF-8')
+                match = re.search(r'Model name:\s*(.*)', cpuinfo)
+                cpu_name = str(match.group(1) if match else "Unknown CPU")
+        except:
+            pass
 
         pc_name = subprocess.check_output(
             'hostname', encoding='UTF-8').removesuffix("\n")
 
         hardware = {
             "PC_name": pc_name,
-            "CPU_name": cpu_name,
+            "CPU_name": cpu_name if cpu_name else "Unknown CPU",
             "CPU_temp": temp if temp else -1,
             "CPU_freq": psutil.cpu_freq().max,
         }

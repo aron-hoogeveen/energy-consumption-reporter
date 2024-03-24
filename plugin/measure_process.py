@@ -51,8 +51,9 @@ class MeasureProcess(Process):
                         c = wmi.WMI()
                         thermal_zone_info = c.query(
                             "SELECT * FROM Win32_PerfFormattedData_Counters_ThermalZoneInformation WHERE Name LIKE '%CPU%'")
-                        cpu_temps.append(
-                            int(thermal_zone_info[0].Temperature - 273.15))
+                        if len(thermal_zone_info) > 0:
+                            cpu_temp = int(thermal_zone_info[0].Temperature - 273.15)
+                            cpu_temps.append(cpu_temp)
                     else:
                         sensor_data = json.loads(subprocess.check_output(
                             ["sensors", "-j"]).decode("utf-8"))
@@ -69,16 +70,10 @@ class MeasureProcess(Process):
             total_time_ms = math.ceil(total_time / 1_000_000)
 
             # convert measurements (W) to energy (J)
-            energy = 0
-            last_time = start
-            for (t, wattage) in measurements:
-                delta_t = t - last_time
-                delta_t_s = delta_t / 1_000_000_000
-                energy += wattage * delta_t_s
-                last_time = t
-
-            # get average wattage
             wattages = [x[1] for x in measurements]
+            # get average wattage
+            times = [x[0] / 1_000_000_000 for x in measurements]
+            energy = np.trapz(wattages, times)
             avg_wattage = float(np.mean(
                 list(wattages)))
             avg_temp = float(np.mean(
