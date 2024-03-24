@@ -10,10 +10,6 @@ class SingletonMeta(type):
 
     _lock: Lock = Lock()
 
-    def __init__(self, name, bases, mmbs):
-        super(SingletonMeta, self).__init__(name, bases, mmbs)
-        self._instances[self] = super(SingletonMeta, self).__call__()
-
     def __call__(cls, *args, **kwargs):
         with cls._lock:
             if cls not in cls._instances:

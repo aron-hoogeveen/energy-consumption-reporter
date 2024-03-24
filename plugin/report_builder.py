@@ -1,5 +1,6 @@
 import datetime
 import json
+import os
 import re
 import subprocess
 import psutil
@@ -43,29 +44,26 @@ class ReportBuilder:
         if psutil.WINDOWS:
             c = wmi.WMI()
             thermal_zone_info = c.query(
-                "SELECT * FROM Win32_PerfFormattedData_Counters_ThermalZoneInformation")
-            temperatures = [zone.Temperature for zone in thermal_zone_info]
+                "SELECT * FROM Win32_PerfFormattedData_Counters_ThermalZoneInformation WHERE Name LIKE '%CPU%'")
+            temp = int(thermal_zone_info[0].Temperature - 273.15)
 
-            for i, temp in enumerate(temperatures):
-                temperatures[i] = temp - 273.15
-                if "CPU" in thermal_zone_info[i].Name:
-                    temp = int(temperatures[i])
-            temp = None
+            cpu_name = c.Win32_Processor(
+            )[0].Name if c.Win32_Processor() else "Unknown CPU"
         else:
             sensor_data = json.loads(subprocess.check_output(
                 ["sensors", "-j"]).decode("utf-8"))
             temp = int(sensor_data.get(
                 "k10temp-pci-00c3").get("Tctl").get("temp1_input"))
-
-        cpuinfo = subprocess.check_output('lscpu', encoding='UTF-8')
-        match = re.search(r'Model name:\s*(.*)', cpuinfo)
+            cpuinfo = subprocess.check_output('lscpu', encoding='UTF-8')
+            match = re.search(r'Model name:\s*(.*)', cpuinfo)
+            cpu_name = str(match.group(1) if match else "Unknown CPU")
 
         pc_name = subprocess.check_output(
             'hostname', encoding='UTF-8').removesuffix("\n")
 
         hardware = {
             "PC_name": pc_name,
-            "CPU_name": str(match.group(1) if match else "Unknown CPU"),
+            "CPU_name": cpu_name,
             "CPU_temp": temp if temp else -1,
             "CPU_freq": psutil.cpu_freq().max,
         }
@@ -95,8 +93,9 @@ class ReportBuilder:
 
     def save_report(self, file_path=None):
         if file_path is None:
-            file_path = "EnergyReport-" + self.time + ".json"
-        with open(file_path, 'w') as file:
+            file_path = os.path.join(os.path.dirname(os.path.abspath(
+                __file__)), "EnergyReport-" + self.time.replace(':', '') + ".json")
+        with open(file_path, 'w+') as file:
             file.write(json.dumps(self.report, indent=4))
 
     def print_report(self):

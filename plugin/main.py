@@ -1,5 +1,4 @@
 import logging
-from multiprocessing import freeze_support
 from energy_test import EnergyTest
 from energy_model import EnergyModel
 
@@ -42,7 +41,7 @@ def test_func3():
 
 
 if __name__ == '__main__':
-    # EnergyTest().set_model(EnergyModel)
+    EnergyTest().set_model(EnergyModel)
     EnergyTest().set_report_name("Custom Report Name")
     EnergyTest().set_report_description("Custom Report Description")
     EnergyTest().set_save_report(True)

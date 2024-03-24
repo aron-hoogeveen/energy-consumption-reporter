@@ -41,25 +41,17 @@ class MeasureProcess(Process):
                     continue
 
                 now = time.time_ns()
-                wattage = self.model.predict(float(utilization))
+                wattage: float = self.model.predict(float(utilization))
                 measurement = (now, wattage)
                 measurements.append(measurement)
 
                 try:
-                    # if operating system is windows
-
                     if psutil.WINDOWS:
                         c = wmi.WMI()
                         thermal_zone_info = c.query(
-                            "SELECT * FROM Win32_PerfFormattedData_Counters_ThermalZoneInformation")
-                        temperatures = [
-                            zone.Temperature for zone in thermal_zone_info]
-
-                        for i, temp in enumerate(temperatures):
-                            temperatures[i] = temp - 273.15
-                            if "CPU" in thermal_zone_info[i].Name:
-                                cpu_temps.append(int(temperatures[i]))
-                        cpu_temps.append(None)
+                            "SELECT * FROM Win32_PerfFormattedData_Counters_ThermalZoneInformation WHERE Name LIKE '%CPU%'")
+                        cpu_temps.append(
+                            int(thermal_zone_info[0].Temperature - 273.15))
                     else:
                         sensor_data = json.loads(subprocess.check_output(
                             ["sensors", "-j"]).decode("utf-8"))

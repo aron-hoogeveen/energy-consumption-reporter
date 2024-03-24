@@ -8,6 +8,7 @@ import platform
 from typing import Optional
 import pandas as pd
 import psutil
+import pythoncom
 
 
 class CPUInfo:
@@ -76,7 +77,7 @@ def get_cpu_info_linux(logger):
 
             cpu = match.group(1)
             tdp_list = pd.read_csv(
-                os.getcwd() + '/plugin/data/cpu_power.csv', sep=',')
+                os.path.join(os.path.dirname(os.path.realpath(__file__)), "data", "cpu_power.csv"), sep=',')
 
             tdp = tdp_list[tdp_list.apply(
                 lambda row: row['Name'] in cpu, axis=1)]
@@ -94,7 +95,8 @@ def get_cpu_info_linux(logger):
             data.architecture = match.group(1)
             logger.info('Found Architecture: %s', data.architecture)
             spec_data = pd.read_csv(
-                os.getcwd() + '/plugin/data/spec_data_cleaned.csv', sep=',')
+                os.path.join(os.path.dirname(os.path.realpath(
+                    __file__)), "data", "spec_data_cleaned.csv"), sep=',')
             if data.architecture not in spec_data['Architecture'].unique():
                 if data.make == 'intel':
                     logger.info(
@@ -137,14 +139,17 @@ def get_cpu_make():
 
 
 def get_physical_cpu_socket_count():
+    pythoncom.CoInitialize()
     c = wmi.WMI()
     sockets = set()
     for processor in c.Win32_Processor():
         sockets.add(processor.SocketDesignation)
+    pythoncom.CoUninitialize()
     return len(sockets)
 
 
 def get_tdp():
+    pythoncom.CoInitialize()
     c = wmi.WMI()
     for processor in c.Win32_Processor():
         name = processor.Name
@@ -152,7 +157,8 @@ def get_tdp():
         name = name.replace('(TM)', '')
         name = name.strip()
         tdp_list = pd.read_csv(
-            os.getcwd() + '/plugin/data/cpu_power.csv', sep=',')
+            os.path.join(os.path.dirname(os.path.realpath(
+                __file__)), "data", "cpu_power.csv"), sep=',')
 
         tdp = tdp_list[tdp_list.apply(
             lambda row: row['Name'] in name, axis=1)]
@@ -161,8 +167,12 @@ def get_tdp():
             tdp = tdp['TDP'].values[0]
         else:
             tdp = 100
+        pythoncom.CoUninitialize()
 
         return tdp
+
+    pythoncom.CoUninitialize()
+    return None
 
 
 def get_cpu_info(logger: logging.Logger):
@@ -183,7 +193,8 @@ def get_cpu_info(logger: logging.Logger):
         make = get_cpu_make()
         architecture = platform.architecture()[0]
         spec_data = pd.read_csv(
-            os.getcwd() + '/plugin/data/spec_data_cleaned.csv', sep=',')
+            os.path.join(os.path.dirname(os.path.realpath(
+                __file__)), "data", "spec_data_cleaned.csv"), sep=',')
         if architecture not in spec_data['Architecture'].unique():
             if make == 'intel':
                 logger.info(
