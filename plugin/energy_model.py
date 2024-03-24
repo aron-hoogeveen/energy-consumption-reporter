@@ -32,7 +32,6 @@ class EnergyModel(metaclass=SingletonMeta):
 
         self.Z = pd.get_dummies(self.Z, columns=['CPUMake', 'Architecture'])
         self.Z = self.Z.dropna(axis=1)
-
         if os.path.exists(model_path):
             self.model = pickle.load(open(model_path, 'rb'))
         else:

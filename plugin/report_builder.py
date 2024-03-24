@@ -4,7 +4,10 @@ import os
 import re
 import subprocess
 import psutil
-import wmi
+try:
+    import wmi
+except ImportError:
+    pass
 
 
 class ReportBuilder:
@@ -93,8 +96,8 @@ class ReportBuilder:
 
     def save_report(self, file_path=None):
         if file_path is None:
-            file_path = os.path.join(os.path.dirname(os.path.abspath(
-                __file__)), "EnergyReport-" + self.time.replace(':', '') + ".json")
+            file_path = os.path.join(
+                os.getcwd(), "EnergyReport-" + self.time.replace(':', '') + ".json")
         with open(file_path, 'w+') as file:
             file.write(json.dumps(self.report, indent=4))
 

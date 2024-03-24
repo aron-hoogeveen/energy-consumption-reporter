@@ -1,4 +1,7 @@
-import wmi
+try:
+    import wmi
+except ImportError:
+    pass
 import os
 import subprocess
 import re
@@ -8,7 +11,10 @@ import platform
 from typing import Optional
 import pandas as pd
 import psutil
-import pythoncom
+try:
+    import pythoncom  # type: ignore
+except ImportError:
+    pass
 
 
 class CPUInfo:
