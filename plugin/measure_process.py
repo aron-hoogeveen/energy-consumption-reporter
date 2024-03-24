@@ -1,11 +1,6 @@
 import json
 import math
 from multiprocessing import Event, Process
-from multiprocessing.connection import Connection
-try:
-    from multiprocessing.connection import PipeConnection  # type: ignore
-except ImportError:
-    pass
 import subprocess
 try:
     import wmi
@@ -17,7 +12,7 @@ import numpy as np
 
 
 class MeasureProcess(Process):
-    def __init__(self, connection: Connection, model, *args, **kwargs):
+    def __init__(self, connection, model, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.daemon = True
         self.exit = Event()

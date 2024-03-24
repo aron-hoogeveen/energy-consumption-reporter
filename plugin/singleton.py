@@ -1,5 +1,7 @@
 from threading import Lock
 
+import psutil
+
 
 class SingletonMeta(type):
     """
@@ -11,6 +13,8 @@ class SingletonMeta(type):
     _lock: Lock = Lock()
 
     def __init__(self, name, bases, mmbs):
+        if psutil.WINDOWS:
+            return
         super(SingletonMeta, self).__init__(name, bases, mmbs)
         self._instances[self] = super(SingletonMeta, self).__call__()
 
