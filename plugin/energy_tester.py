@@ -3,12 +3,12 @@ import logging
 from multiprocessing import Pipe
 from multiprocessing.managers import BaseManager
 
-from .energy_model import EnergyModel
+from energy_model import EnergyModel
 from functools import wraps
 
-from .measure_process import MeasureProcess
-from .singleton import SingletonMeta
-from .report_builder import ReportBuilder
+from measure_process import MeasureProcess
+from singleton import SingletonMeta
+from report_builder import ReportBuilder
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
@@ -75,9 +75,9 @@ class EnergyTester(metaclass=SingletonMeta):
         self.report_builder.set_description(description)
 
     def test(self, func, times, func_name=None):
-        if func_name is None:
+        if func_name is not None:
             func.__name__ = func_name
-            
+
         energy_list = []
         power_list = []
         time_list = []
@@ -88,14 +88,14 @@ class EnergyTester(metaclass=SingletonMeta):
                 break
 
             nth = i + 1
-            logging.debug(f"Test {func_name}, Iteration: {nth}")
+            logging.debug(f"Test {func.__name__}, Iteration: {nth}")
 
             process = MeasureProcess(self.conn1, self.model)
             process.start()
             reason = ""
 
             logging.debug(
-                f"Running method {func_name}...")
+                f"Running method {func.__name__}...")
             try:
                 func()
             except AssertionError as e:
@@ -121,7 +121,7 @@ class EnergyTester(metaclass=SingletonMeta):
         self.report_builder.add_case(time_list=time_list,
                                      energy_list=energy_list,
                                      power_list=power_list,
-                                     test_name=func_name,
+                                     test_name=func.__name__,
                                      passed=passed,
                                      reason=reason)
 

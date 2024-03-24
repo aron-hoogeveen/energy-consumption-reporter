@@ -1,5 +1,5 @@
 import logging
-from pytest_energy_reporter.energy_consumption_reporter.plugin.energy_tester import EnergyTester
+from energy_tester import EnergyTester
 from energy_model import EnergyModel
 
 logger = logging.getLogger(__name__)

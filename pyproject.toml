@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[metadata]
+name = "energy-consumption-reporter"
+version = "0.1"
+
+[tool.setuptools.packages]
+find = { include = ["plugin", "plugin.*"] }
+
+[project]
+name = "energy-consumption-reporter"
+version = "0.1"
+authors = [
+  { name="Rodin Haker", email="rodinhaker@hotmail.com" },
+  { name="Delano Flipse", email="test@email.com" },
+  { name="Aron Hoogeveen", email="test@email.com" }
+]
+description = "A tool to report energy consumption of functions"
+readme = "README.md"
+requires-python = ">=3.10"
