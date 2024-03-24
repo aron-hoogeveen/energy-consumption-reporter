@@ -1,4 +1,5 @@
 import logging
+from multiprocessing import freeze_support
 from energy_test import EnergyTest
 from energy_model import EnergyModel
 

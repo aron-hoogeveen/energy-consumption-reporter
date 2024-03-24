@@ -1,14 +1,17 @@
+import json
 import math
 from multiprocessing import Event, Process
-from multiprocessing.connection import Connection
-
+from multiprocessing.connection import Connection, PipeConnection
+import os
+import subprocess
+import wmi
 import time
 import psutil
 import numpy as np
 
 
 class MeasureProcess(Process):
-    def __init__(self, connection: Connection, model, *args, **kwargs):
+    def __init__(self, connection: Connection | PipeConnection, model, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.daemon = True
         self.exit = Event()
@@ -43,8 +46,25 @@ class MeasureProcess(Process):
                 measurements.append(measurement)
 
                 try:
-                    cpu_temps.append(psutil.sensors_temperatures()[
-                                     'k10temp'][0][1])  # TODO potential Windows compatibility issue
+                    # if operating system is windows
+
+                    if psutil.WINDOWS:
+                        c = wmi.WMI()
+                        thermal_zone_info = c.query(
+                            "SELECT * FROM Win32_PerfFormattedData_Counters_ThermalZoneInformation")
+                        temperatures = [
+                            zone.Temperature for zone in thermal_zone_info]
+
+                        for i, temp in enumerate(temperatures):
+                            temperatures[i] = temp - 273.15
+                            if "CPU" in thermal_zone_info[i].Name:
+                                cpu_temps.append(int(temperatures[i]))
+                        cpu_temps.append(None)
+                    else:
+                        sensor_data = json.loads(subprocess.check_output(
+                            ["sensors", "-j"]).decode("utf-8"))
+                        cpu_temps.append(int(sensor_data.get(
+                            "k10temp-pci-00c3").get("Tctl").get("temp1_input")))
                 except:
                     pass
 

@@ -1,8 +1,6 @@
 import inspect
 from multiprocessing import Pipe
 from multiprocessing.managers import BaseManager
-import time
-from typing import Any, Optional
 
 from energy_model import EnergyModel
 import logging

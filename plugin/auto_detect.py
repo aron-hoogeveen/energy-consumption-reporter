@@ -1,3 +1,4 @@
+import wmi
 import os
 import subprocess
 import re
@@ -5,7 +6,6 @@ import logging
 import math
 import platform
 from typing import Optional
-
 import pandas as pd
 import psutil
 
@@ -98,8 +98,8 @@ def get_cpu_info_linux(logger):
             if data.architecture not in spec_data['Architecture'].unique():
                 if data.make == 'intel':
                     logger.info(
-                        'Architecture not in training data. Using default xeon.')
-                    data.architecture = 'xeon'
+                        'Architecture not in training data. Using default skylake.')
+                    data.architecture = 'skylake'
                 elif data.make == 'amd':
                     logger.info(
                         'Architecture not in training data. Using default epyc-gen3.')
@@ -136,6 +136,35 @@ def get_cpu_make():
         return 'unknown'
 
 
+def get_physical_cpu_socket_count():
+    c = wmi.WMI()
+    sockets = set()
+    for processor in c.Win32_Processor():
+        sockets.add(processor.SocketDesignation)
+    return len(sockets)
+
+
+def get_tdp():
+    c = wmi.WMI()
+    for processor in c.Win32_Processor():
+        name = processor.Name
+        name = name.replace('(R)', '')
+        name = name.replace('(TM)', '')
+        name = name.strip()
+        tdp_list = pd.read_csv(
+            os.getcwd() + '/plugin/data/cpu_power.csv', sep=',')
+
+        tdp = tdp_list[tdp_list.apply(
+            lambda row: row['Name'] in name, axis=1)]
+        tdp = tdp[tdp['Name'].apply(len) == tdp['Name'].apply(len).max()]
+        if not tdp.empty:
+            tdp = tdp['TDP'].values[0]
+        else:
+            tdp = 100
+
+        return tdp
+
+
 def get_cpu_info(logger: logging.Logger):
     if platform.system() == 'Linux':
         return get_cpu_info_linux(logger)
@@ -145,14 +174,25 @@ def get_cpu_info(logger: logging.Logger):
         # fetch CPU info using cpuinfo package
         logger.info('Gathering CPU info')
 
-        chips = 1  # TODO: find a way to get this info
+        chips = get_physical_cpu_socket_count()
         freq = int(psutil.cpu_freq().max)
         threads = psutil.cpu_count(logical=True)
         cores = psutil.cpu_count(logical=False)
-        tdp = 0  # TODO: find a way to get this info
+        tdp = get_tdp()
         mem = math.ceil(psutil.virtual_memory().total / 1024 / 1024 / 1024)
         make = get_cpu_make()
-        architecture = None  # TODO: find a way to get this info
+        architecture = platform.architecture()[0]
+        spec_data = pd.read_csv(
+            os.getcwd() + '/plugin/data/spec_data_cleaned.csv', sep=',')
+        if architecture not in spec_data['Architecture'].unique():
+            if make == 'intel':
+                logger.info(
+                    'Architecture not in training data. Using default skylake.')
+                architecture = 'skylake'
+            elif make == 'amd':
+                logger.info(
+                    'Architecture not in training data. Using default epyc-gen3.')
+                architecture = 'epyc-gen3'
 
         # write summary to logger
         logger.info('CPU info for: %s', platform.processor())
@@ -182,3 +222,5 @@ if __name__ == "__main__":
     logger = logging.getLogger(__name__)
     logger.addHandler(logging.StreamHandler())
     logger.setLevel(logging.INFO)
+
+    print(get_cpu_info(logger))

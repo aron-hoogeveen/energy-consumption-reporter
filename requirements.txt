@@ -7,3 +7,4 @@ psutil==5.9.8
 pyarrow==15.0.0
 scikit-learn==1.4.1.post1
 statsmodels==0.14.1
+WMI==1.5.1

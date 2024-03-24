@@ -3,6 +3,7 @@ import json
 import re
 import subprocess
 import psutil
+import wmi
 
 
 class ReportBuilder:
@@ -39,11 +40,22 @@ class ReportBuilder:
         self.report["results"].update({"date": self.time})
         self.report["results"].update({"model": self.model_name})
 
-        # TODO: Make Windows compatible
-        sensor_data = json.loads(subprocess.check_output(
-            ["sensors", "-j"]).decode("utf-8"))
-        temp = sensor_data.get(
-            "k10temp-pci-00c3").get("Tctl").get("temp1_input")
+        if psutil.WINDOWS:
+            c = wmi.WMI()
+            thermal_zone_info = c.query(
+                "SELECT * FROM Win32_PerfFormattedData_Counters_ThermalZoneInformation")
+            temperatures = [zone.Temperature for zone in thermal_zone_info]
+
+            for i, temp in enumerate(temperatures):
+                temperatures[i] = temp - 273.15
+                if "CPU" in thermal_zone_info[i].Name:
+                    temp = int(temperatures[i])
+            temp = None
+        else:
+            sensor_data = json.loads(subprocess.check_output(
+                ["sensors", "-j"]).decode("utf-8"))
+            temp = int(sensor_data.get(
+                "k10temp-pci-00c3").get("Tctl").get("temp1_input"))
 
         cpuinfo = subprocess.check_output('lscpu', encoding='UTF-8')
         match = re.search(r'Model name:\s*(.*)', cpuinfo)
