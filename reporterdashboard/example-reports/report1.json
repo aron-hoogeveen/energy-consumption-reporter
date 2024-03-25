@@ -1,0 +1,71 @@
+{
+	"results": {
+		"name": "Hello World!",
+		"description": "This is some extra description that can be displayed for convenience.\nDo whatever you need.",
+		"version": 1,
+		"software_version": "v1.2BETA",
+		"commit": "755f02b971d59acd85d3aa727baa0e822efcd73f",
+		"date": "2024-03-11T16:50:00",
+		"model": "https://github.com/green-coding-solutions/spec-power-model",
+		"hardware": {
+			"PC_name": "Aron's Laptop",
+			"CPU_name": "AMD® Ryzen 9 7940hs w/ radeon 780m graphics",
+			"CPU_temp": 40.3,
+			"CPU_freq": 2000
+		},
+		"cases": [
+			{
+				"name": "test_user_supplies_incomplete_information",
+				"result": "fail",
+				"reason": "AssertionError: Invalid Operation",
+				"N": 3,
+				"execution_time": [
+					1000,
+					1000,
+					1000
+				],
+				"energy": [
+					0,
+					0,
+					0
+				],
+				"power": [
+					0,
+					0,
+					0
+				],
+				"_my_custom_field": "This is so epic!",
+				"_test_params": {
+					"param1": "<value1>",
+					"param2": "<value2>"
+				}
+			},
+			{
+				"name": "test_user_supplies_complete_information",
+				"result": "pass",
+				"reason": "",
+				"N": 3,
+				"execution_time": [
+					50000,
+					50200,
+					50100
+				],
+				"energy": [
+					16.3,
+					16.2,
+					16.5
+				],
+				"power": [
+					0.326,
+					0.32270916334661354,
+					0.32934131736526945
+				],
+				"_my_custom_field": "This is so epic!",
+				"_test_params": {
+					"param1": "<value1>",
+					"param2": "<value2>"
+				}
+			}
+		]
+	}
+}
