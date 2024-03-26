@@ -115,7 +115,7 @@ The previews identified data fields resulted in the following JSON template:
 	"results": {
 		"name": "Hello World!",
 		"description": "This is some extra description that can be displayed for convenience.\nDo whatever you need.",
-		"version": "1",
+		"version": 1,
 		"software_version": "v1.2BETA",
 		"commit": "755f02b971d59acd85d3aa727baa0e822efcd73f",
 		"date": "2024-03-11T16:50:00",
@@ -123,8 +123,8 @@ The previews identified data fields resulted in the following JSON template:
 		"hardware": {
 			"PC_name": "<value>",
 			"CPU_name": "<value>",
-			"CPU_temp": "<value>",
-			"CPU_freq": "<value>"
+			"CPU_temp": <value_in_degrees_celcius>,
+			"CPU_freq": <value_in_MHz>
 		},
 		"cases": [
 			{
@@ -133,19 +133,19 @@ The previews identified data fields resulted in the following JSON template:
 				"reason": "AssertionError: Invalid Operation",
 				"N": 3,
 				"execution_time": [
-					"<miliseconds>",
-					"<miliseconds>",
-					"<miliseconds>"
+					<miliseconds>,
+					<miliseconds>,
+					<miliseconds>
 				],
 				"energy": [
-					"<joules>",
-					"<joules>",
-					"<joules>"
+					<joules>,
+					<joules>,
+					<joules>
 				],
 				"power": [
-					"<Watts>",
-					"<Watts>",
-					"<Watts>"
+					<Watts>,
+					<Watts>,
+					<Watts>
 				],
 				"_my_custom_field": "This is so epic!",
 				"_test_params": {
@@ -159,19 +159,19 @@ The previews identified data fields resulted in the following JSON template:
 				"reason": "",
 				"N": 3,
 				"execution_time": [
-					"<miliseconds>",
-					"<miliseconds>",
-					"<miliseconds>"
+					<miliseconds>,
+					<miliseconds>,
+					<miliseconds>
 				],
 				"energy": [
-					"<joules>",
-					"<joules>",
-					"<joules>"
+					<joules>,
+					<joules>,
+					<joules>
 				],
 				"power": [
-					"<Watts>",
-					"<Watts>",
-					"<Watts>"
+					<Watts>,
+					<Watts>,
+					<Watts>
 				],
 				"_my_custom_field": "This is so epic!",
 				"_test_params": {
