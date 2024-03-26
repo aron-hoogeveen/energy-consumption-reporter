@@ -1,0 +1,78 @@
+{
+    "results": {
+        "name": "Test Report 1",
+        "version": 0.1,
+        "cases": [
+            {
+                "name": "test_a",
+                "result": "pass",
+                "N": 1,
+                "execution_time": [
+                    1000
+                ],
+                "energy": [
+                    200
+                ],
+                "power": [
+                    200
+                ] 
+            },
+            {
+                "name": "test_b",
+                "result": "pass",
+                "N": 1,
+                "execution_time": [
+                    1000
+                ],
+                "energy": [
+                    200
+                ],
+                "power": [
+                    200
+                ] 
+            },
+            {
+                "name": "test_c",
+                "result": "pass",
+                "N": 1,
+                "execution_time": [
+                    1000
+                ],
+                "energy": [
+                    200
+                ],
+                "power": [
+                    200
+                ] 
+            },
+            {
+                "name": "test_d",
+                "result": "pass",
+                "N": 1,
+                "execution_time": [
+                    1000
+                ],
+                "energy": [
+                    200
+                ],
+                "power": [
+                    200
+                ] 
+            },
+            {
+                "name": "test_e",
+                "result": "pass",
+                "N": 1,
+                "execution_time": [
+                    1000
+                ],
+                "energy": [
+                    200
+                ],
+                "power": [
+                    200
+                ] 
+            }
+        ]
+    }
+}
