@@ -11,6 +11,7 @@ class ReportBuilder:
         self.name = name
         self.description = description
         self.model_name = model_name
+        self.report_path = ""
         self.time = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
         self.version = 0
         self.report = {"results": {}}
@@ -99,7 +100,7 @@ class ReportBuilder:
     def save_report(self, file_path=None):
         if file_path is None:
             file_path = os.path.join(
-                os.getcwd(), "EnergyReport-" + self.time.replace(':', '') + ".json")
+                os.getcwd(), self.report_path, "EnergyReport-" + self.time.replace(':', '') + ".json")
         with open(file_path, 'w+') as file:
             file.write(json.dumps(self.report, indent=4))
 
