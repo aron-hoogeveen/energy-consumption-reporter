@@ -1,6 +1,5 @@
 import logging
-from energy_tester import EnergyTester
-from energy_model import EnergyModel
+from energy_consumption_reporter.energy_tester import EnergyTester
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
