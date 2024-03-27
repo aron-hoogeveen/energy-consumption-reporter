@@ -75,11 +75,8 @@ class EnergyTester(metaclass=SingletonMeta):
         self.report_builder.set_description(description)
 
     def test(self, func, times, func_name=None):
-        if func_name is not None:
-            if hasattr(func, "__name__"):
-                func_name = func.__name__
-            elif hasattr(func, "__func__"):
-                func_name = func.__func__.__name__
+        if func_name is None:
+            func_name = func.__qualname__
 
         energy_list = []
         power_list = []
@@ -91,14 +88,14 @@ class EnergyTester(metaclass=SingletonMeta):
                 break
 
             nth = i + 1
-            logging.debug(f"Test {func.__name__}, Iteration: {nth}")
+            logging.debug(f"Test {func_name}, Iteration: {nth}")
 
             process = MeasureProcess(self.conn1, self.model)
             process.start()
             reason = ""
 
             logging.debug(
-                f"Running method {func.__name__}...")
+                f"Running method {func_name}...")
             try:
                 func()
             except AssertionError as e:
@@ -124,7 +121,7 @@ class EnergyTester(metaclass=SingletonMeta):
         self.report_builder.add_case(time_list=time_list,
                                      energy_list=energy_list,
                                      power_list=power_list,
-                                     test_name=func.__name__,
+                                     test_name=func_name,
                                      passed=passed,
                                      reason=reason)
 
