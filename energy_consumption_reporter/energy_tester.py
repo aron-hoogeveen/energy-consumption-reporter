@@ -3,12 +3,12 @@ import logging
 from multiprocessing import Pipe
 from multiprocessing.managers import BaseManager
 
-from energy_model import EnergyModel
+from energy_consumption_reporter.energy_model import EnergyModel
 from functools import wraps
 
-from measure_process import MeasureProcess
-from singleton import SingletonMeta
-from report_builder import ReportBuilder
+from energy_consumption_reporter.measure_process import MeasureProcess
+from energy_consumption_reporter.singleton import SingletonMeta
+from energy_consumption_reporter.report_builder import ReportBuilder
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
