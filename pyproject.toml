@@ -1,0 +1,43 @@
+[tool.poetry]
+name = "energy_consumption_reporter"
+version = "0.1.2"
+authors = [
+  "Rodin Haker <rodinhaker@hotmail.com>",
+]
+maintainers = [
+  "Rodin Haker <rodinhaker@hotmail.com>",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.10",
+    "Framework :: Pytest",
+]
+description = "An energy consumption measuring and reporting tool"
+readme = "README.md"
+license = "LICENSE"
+keywords = ["energy", "consumption", "reporter"]
+
+[tool.poetry.urls]
+Homepage = "https://github.com/aron-hoogeveen/energy-consumption-reporter"
+Documentation = "https://github.com/aron-hoogeveen/energy-consumption-reporter"
+Repository = "https://github.com/aron-hoogeveen/energy-consumption-reporter"
+"Bug Tracker" = "https://github.com/aron-hoogeveen/energy-consumption-reporter/issues"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+psutil = "5.9.8"
+wmi = {version = "1.5.1", platform = "win32"}
+pandas = "2.2.0"
+setuptools = "^69.2.0"
+xgboost = "2.0.3"
+scikit-learn = "^1.4.1.post1"
+
+
+[tool.poetry.group.dev.dependencies]
+setuptools = "^69.2.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
