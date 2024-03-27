@@ -3,12 +3,12 @@ import logging
 from multiprocessing import Pipe
 from multiprocessing.managers import BaseManager
 
-from energy_model import EnergyModel
+from .energy_model import EnergyModel
 from functools import wraps
 
-from measure_process import MeasureProcess
-from singleton import SingletonMeta
-from report_builder import ReportBuilder
+from .measure_process import MeasureProcess
+from .singleton import SingletonMeta
+from .report_builder import ReportBuilder
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
@@ -75,30 +75,36 @@ class EnergyTester(metaclass=SingletonMeta):
         self.report_builder.set_description(description)
 
     def test(self, func, times, func_name=None):
-        if func_name is not None:
-            func.__name__ = func_name
+        if func_name is None:
+            func_name = func.__qualname__
 
         energy_list = []
         power_list = []
         time_list = []
         passed = True
         stop = False
+        result = None
+        error = None
         for i in range(times):
             if stop:
                 break
 
             nth = i + 1
-            logging.debug(f"Test {func.__name__}, Iteration: {nth}")
+            logging.debug(f"Test {func_name}, Iteration: {nth}")
 
             process = MeasureProcess(self.conn1, self.model)
             process.start()
             reason = ""
 
             logging.debug(
-                f"Running method {func.__name__}...")
+                f"Running method {func_name}...")
             try:
-                func()
+                result = func()
+                error = None
             except AssertionError as e:
+                result = None
+                error = e
+                
                 reason = str(e)
                 passed = False
                 stop = True
@@ -121,13 +127,13 @@ class EnergyTester(metaclass=SingletonMeta):
         self.report_builder.add_case(time_list=time_list,
                                      energy_list=energy_list,
                                      power_list=power_list,
-                                     test_name=func.__name__,
+                                     test_name=func_name,
                                      passed=passed,
                                      reason=reason)
 
         if self.save_report:
             self.report_builder.save_report()
-        return {"time": time_list, "energy": energy_list, "power": power_list}
+        return {"time": time_list, "energy": energy_list, "power": power_list, "result": result, "exception": error}
 
     def start(self):
         self.process = MeasureProcess(self.conn1, self.model)
