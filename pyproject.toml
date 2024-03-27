@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "energy_consumption_reporter"
-version = "0.1.0"
+version = "0.1.2"
 authors = [
   "Rodin Haker <rodinhaker@hotmail.com>",
 ]
@@ -32,6 +32,7 @@ wmi = {version = "1.5.1", platform = "win32"}
 pandas = "2.2.0"
 setuptools = "^69.2.0"
 xgboost = "2.0.3"
+scikit-learn = "^1.4.1.post1"
 
 
 [tool.poetry.group.dev.dependencies]
