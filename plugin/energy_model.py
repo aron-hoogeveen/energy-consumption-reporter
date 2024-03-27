@@ -5,8 +5,8 @@ import pandas as pd
 import pickle
 from xgboost import XGBRegressor
 
-from auto_detect import get_cpu_info
-from singleton import SingletonMeta
+from .auto_detect import get_cpu_info
+from .singleton import SingletonMeta
 
 logger = logging.getLogger(__name__)
 
