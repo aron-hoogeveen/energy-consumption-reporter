@@ -1,11 +1,24 @@
 import json
 import argparse
+from typing import Any
 
 
-def get_matching_test_cases(test_cases_1, test_cases_2):
+def get_matching_test_cases(
+    test_cases_1: list[dict[str, Any]], test_cases_2: list[dict[str, Any]]
+) -> list[tuple[dict[str, Any], dict[str, Any]]]:
     """Returns test cases that are both in test_cases_1 and test_cases_2.
 
     Test cases are ordered by their name.
+
+    This method creates a sorted copy of test_cases_1 and test_cases_2. It then
+    compares the first items of both lists for equal test names. If the names
+    do not match the "smallest" name is popped from its list and the new first
+    two items are compared again. When matching test names are found they are
+    both popped from their list and added to the return list.
+
+    Keyword arguments:
+    test_cases_1 -- list with dictionaries describing test results that should contain at least the key "name"
+    test_cases_2 -- list with dictionaries describing test results that should contain at least the key "name"
     """
     # create sorted copies
     sorted_1 = sorted(test_cases_1, key=lambda d: d["name"])
@@ -13,16 +26,18 @@ def get_matching_test_cases(test_cases_1, test_cases_2):
     overlapping_test_cases = []
 
     while True:
+        # as long as there are items in both lists, compare the first items
         if len(sorted_1) == 0 or len(sorted_2) == 0:
             break
 
+        # always pop an item of at least one of the lists
         if sorted_1[0]["name"] == sorted_2[0]["name"]:
             # only include passing tests
             if sorted_1[0]["result"] != "pass" or sorted_2[0]["result"] != "pass":
                 sorted_1.pop(0)
                 sorted_2.pop(0)
-                continue
-            overlapping_test_cases.append((sorted_1.pop(0), sorted_2.pop(0)))
+            else:
+                overlapping_test_cases.append((sorted_1.pop(0), sorted_2.pop(0)))
         elif sorted_1[0]["name"] < sorted_2[0]["name"]:
             sorted_1.pop(0)
         else:
@@ -30,11 +45,11 @@ def get_matching_test_cases(test_cases_1, test_cases_2):
     return overlapping_test_cases
 
 
-def print_energy_differences(data):
+def print_energy_differences(data: list[tuple[dict[str, Any], dict[str, Any]]]):
     """Prints the energy difference for every test combination tuple in data.
 
     Keyword arguments:
-    data -- list of tuples each containing two test measurements
+    data -- list of tuples each containing two related test result dictionaries
     """
     for testcombi in data:
         # calculate average information
@@ -43,28 +58,14 @@ def print_energy_differences(data):
                 f"Data tuple should have two data objects (actual is {len(testcombi)})."
             )
         N_0 = testcombi[0]["N"]
-        e_0 = 0
-        p_0 = 0
-        t_0 = 0
-        for i in range(0, N_0):
-            e_0 += testcombi[0]["energy"][i]
-            p_0 += testcombi[0]["power"][i]
-            t_0 += testcombi[0]["execution_time"][i]
-        e_0 /= N_0
-        p_0 /= N_0
-        t_0 /= N_0
+        e_0 = sum(testcombi[0]["energy"]) / N_0
+        p_0 = sum(testcombi[0]["energy"]) / N_0
+        t_0 = sum(testcombi[0]["execution_time"]) / N_0
 
         N_1 = testcombi[1]["N"]
-        e_1 = 0
-        p_1 = 0
-        t_1 = 0
-        for i in range(0, N_1):
-            e_1 += testcombi[1]["energy"][i]
-            p_1 += testcombi[1]["power"][i]
-            t_1 += testcombi[1]["execution_time"][i]
-        e_1 /= N_1
-        p_1 /= N_1
-        t_1 /= N_1
+        e_1 = sum(testcombi[1]["energy"]) / N_1
+        p_1 = sum(testcombi[1]["energy"]) / N_1
+        t_1 = sum(testcombi[1]["execution_time"]) / N_1
 
         print(
             f"Test: {testcombi[0]['name']}\n"
