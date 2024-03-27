@@ -38,7 +38,7 @@ class MeasureProcess(Process):
                 utilization = parent_process.cpu_percent(
                     interval=0.2) / psutil.cpu_count()
 
-                if utilization == 0 or utilization > 100:
+                if utilization < 0 or utilization > 100:
                     continue
 
                 now = time.time_ns()

@@ -99,8 +99,9 @@ class ReportBuilder:
 
     def save_report(self, file_path=None):
         if file_path is None:
-            file_path = os.path.join(
-                os.getcwd(), self.report_path, "EnergyReport-" + self.time.replace(':', '') + ".json")
+            file_dir = os.path.join(os.getcwd(), self.report_path)
+            os.makedirs(file_dir, exist_ok=True)
+            file_path = os.path.join(file_dir, "EnergyReport-" + self.time.replace(':', '') + ".json")
         with open(file_path, 'w+') as file:
             file.write(json.dumps(self.report, indent=4))
 
