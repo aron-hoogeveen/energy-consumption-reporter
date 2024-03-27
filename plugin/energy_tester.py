@@ -83,6 +83,8 @@ class EnergyTester(metaclass=SingletonMeta):
         time_list = []
         passed = True
         stop = False
+        result = None
+        error = None
         for i in range(times):
             if stop:
                 break
@@ -97,8 +99,12 @@ class EnergyTester(metaclass=SingletonMeta):
             logging.debug(
                 f"Running method {func_name}...")
             try:
-                func()
+                result = func()
+                error = None
             except AssertionError as e:
+                result = None
+                error = e
+                
                 reason = str(e)
                 passed = False
                 stop = True
@@ -127,7 +133,7 @@ class EnergyTester(metaclass=SingletonMeta):
 
         if self.save_report:
             self.report_builder.save_report()
-        return {"time": time_list, "energy": energy_list, "power": power_list}
+        return {"time": time_list, "energy": energy_list, "power": power_list, "result": result, "exception": error}
 
     def start(self):
         self.process = MeasureProcess(self.conn1, self.model)
