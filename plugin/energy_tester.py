@@ -76,7 +76,10 @@ class EnergyTester(metaclass=SingletonMeta):
 
     def test(self, func, times, func_name=None):
         if func_name is not None:
-            func.__name__ = func_name
+            if hasattr(func, "__name__"):
+                func_name = func.__name__
+            elif hasattr(func, "__func__"):
+                func_name = func.__func__.__name__
 
         energy_list = []
         power_list = []
