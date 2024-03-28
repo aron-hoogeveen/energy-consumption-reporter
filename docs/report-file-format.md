@@ -21,14 +21,14 @@ Resulting in the following basic template:
 		<!-- other high-level information -->,
 		"cases": [
 			{
-				"name": "<some test method name",
+				"name": "<some test method name>",
 				"result": "pass",
 				"reason": "",
 				<!-- other test-level information -->,
 				"_userDefinedField": "<some value>"
 			},
 			{
-				"name": "<another test method name",
+				"name": "<another test method name>",
 				"result": "fail",
 				"reason": "AssertionError: Invalid Operation",
 				<!-- other test-level information -->,
@@ -80,6 +80,7 @@ We arrive at the following test-level data fields:
 - **energy:** list with _N_ entries corresponding to the total energy of a single execution of a scenario.
 - **power:** list with _N_ entries corresponding to the average power of a single execution of a scenario.
 - **execution_time:** list with _N_ entries with the execution time for each of the executions;
+- **edp:** the energy delay product.
 - **result:** "pass"/"fail" of the test;
 - **reason:** if a test failed, the reason why it failed;
 
@@ -147,6 +148,11 @@ The previews identified data fields resulted in the following JSON template:
 					<Watts>,
 					<Watts>
 				],
+				"edp": [
+					<joules-second>,
+					<joules-second>,
+					<joules-second>
+				],
 				"_my_custom_field": "This is so epic!",
 				"_test_params": {
 					"param1": "<value1>",
@@ -172,6 +178,11 @@ The previews identified data fields resulted in the following JSON template:
 					<Watts>,
 					<Watts>,
 					<Watts>
+				],
+				"edp": [
+					<joules-second>,
+					<joules-second>,
+					<joules-second>
 				],
 				"_my_custom_field": "This is so epic!",
 				"_test_params": {
