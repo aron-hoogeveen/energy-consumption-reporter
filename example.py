@@ -46,6 +46,7 @@ if __name__ == '__main__':
     EnergyTester().set_report_name("Custom Report Name")
     EnergyTester().set_report_description("Custom Report Description")
     EnergyTester().set_save_report(OutputType.JSON)
+    EnergyTester().set_zero_offset(False)
 
     test_func()
     test_func2()

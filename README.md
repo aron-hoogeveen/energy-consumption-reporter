@@ -99,6 +99,7 @@ You have the flexibility to configure the following custom parameters:
 - Report name (default = CPU Energy Test Report)
 - Report description (default = empty)
 - Option to save a report in JSON format (default = NONE)
+- Option to remove the base power consumption (consumption without any function running, e.g. sleep(5) returns >0) from the measurements (default = False)
 
 These parameters need to be configured before calling the functions. Refer to the [example.py](https://github.com/aron-hoogeveen/energy-consumption-reporter/blob/main/example.py) file for more details and examples.
 
@@ -107,6 +108,7 @@ EnergyTest().set_model(MyCustomModel)
 EnergyTest().set_report_name("Custom Report Name")
 EnergyTest().set_report_description("Custom Report Description")
 EnergyTest().set_save_report(OutputType.PRINT_JSON)
+EnergyTester().set_zero_offset(True)
 ```
 
 If the option 'set_save_report' is set to True, the tool will generate [a JSON file](https://github.com/aron-hoogeveen/energy-consumption-reporter/blob/main/reporterdashboard/example-reports/report1.json) containing the output data. When set to False it prints the same information to the terminal.
