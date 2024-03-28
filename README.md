@@ -11,6 +11,14 @@ This project uses Python 3.10.
 
 <!-- TODO add project description -->
 
+## Dependencies
+
+### Windows
+
+### Linux
+
+- [lm-sensors](https://github.com/lm-sensors/lm-sensors) - the command `sensors -j` is used for extracting information about the CPU temperature.
+
 ## Usage
 
 There are two main ways to use this project:
