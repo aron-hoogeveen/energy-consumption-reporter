@@ -38,24 +38,6 @@ poetry add energy_consumption_reporter
 pip install energy_consumption_reporter
 ```
 
-### Submodule / Download
-Alternatively, you have the option to download this repository or add it as a submodule and integrate it into your own projects. This approach allows you to customize the tool according to your preferences and make any necessary adjustments as needed.
-
-#### Add submodule
-```console
-git submodule add https://github.com/aron-hoogeveen/energy-consumption-reporter.git <destination-folder>
-```
-
-#### Pull submodule
-```console
-git submodule update --init
-```
-
-#### Update submodule
-```console
-git submodule update --remote --merge
-```
-
 ## Usage
 
 First you must import the module:
