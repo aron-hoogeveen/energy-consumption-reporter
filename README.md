@@ -15,7 +15,7 @@ This project uses Python 3.10.
 
 There are two main ways to use this project:
 
-1. Use the decorator to test a function. You can proved the amount of times it has to run as a parameter.
+1. Use the decorator to test a function. You can provide the amount of times it has to run as a parameter.
 
 ``` python
 @EnergyTest.energy_test(2)
