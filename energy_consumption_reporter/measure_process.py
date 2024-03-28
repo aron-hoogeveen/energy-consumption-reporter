@@ -3,7 +3,7 @@ import math
 from multiprocessing import Event, Process
 import subprocess
 try:
-    import wmi
+    import wmi  # type: ignore
 except ImportError:
     pass
 import time
@@ -52,7 +52,8 @@ class MeasureProcess(Process):
                         thermal_zone_info = c.query(
                             "SELECT * FROM Win32_PerfFormattedData_Counters_ThermalZoneInformation WHERE Name LIKE '%CPU%'")
                         if len(thermal_zone_info) > 0:
-                            cpu_temp = int(thermal_zone_info[0].Temperature - 273.15)
+                            cpu_temp = int(
+                                thermal_zone_info[0].Temperature - 273.15)
                             cpu_temps.append(cpu_temp)
                     else:
                         sensor_data = json.loads(subprocess.check_output(

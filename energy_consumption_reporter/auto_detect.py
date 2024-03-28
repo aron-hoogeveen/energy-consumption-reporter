@@ -1,5 +1,8 @@
+# Disclaimer: This file is a (heavily) modified version of the original file from the repository spec-power-model by green-coding-solutions
+# https://github.com/green-coding-solutions/spec-power-model/blob/main/auto_detect.py
+
 try:
-    import wmi
+    import wmi  # type: ignore
 except ImportError:
     pass
 import os

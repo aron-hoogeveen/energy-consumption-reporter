@@ -18,7 +18,7 @@ data_path = os.path.join(file_dir, 'data/spec_data_cleaned.csv')
 class EnergyModel(metaclass=SingletonMeta):
     def __init__(self) -> None:
         self.cpu_info = get_cpu_info(logger)
-
+        self.zero_offset = False  # EXPERIMENTAL
         self.Z = pd.DataFrame.from_dict({
             'HW_CPUFreq': [self.cpu_info.freq],
             'CPUThreads': [self.cpu_info.threads],
@@ -36,7 +36,14 @@ class EnergyModel(metaclass=SingletonMeta):
             self.model = pickle.load(open(model_path, 'rb'))
         else:
             self.train_model()
+
+        self.zero_prediction = self.model.predict(self.Z)[0]
+
         self.is_setup = True
+
+    # EXPERIMENTAL
+    def set_zero_offset(self, zero_offset: bool):
+        self.zero_offset = zero_offset
 
     def predict(self, utilization: float):
         if not self.is_setup:
@@ -44,6 +51,8 @@ class EnergyModel(metaclass=SingletonMeta):
 
         self.Z['utilization'] = utilization
         predicion = self.model.predict(self.Z)[0]
+        if self.zero_offset:
+            predicion -= self.zero_prediction
         return predicion
 
     def train_model(self, export=True):

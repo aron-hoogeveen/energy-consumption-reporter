@@ -1,10 +1,12 @@
 import inspect
 import logging
+from enum import Enum
 from multiprocessing import Pipe
 from multiprocessing.managers import BaseManager
 
 from energy_consumption_reporter.energy_model import EnergyModel
 from functools import wraps
+# import atexit
 
 from energy_consumption_reporter.measure_process import MeasureProcess
 from energy_consumption_reporter.singleton import SingletonMeta
@@ -15,17 +17,27 @@ logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.DEBUG)
 
 
+class OutputType(Enum):
+    NONE = 0
+    JSON = 1
+    PRINT = 2
+    PRINT_JSON = 3
+
+
 class EnergyTester(metaclass=SingletonMeta):
 
     def __init__(self) -> None:
         self.conn1, self.conn2 = Pipe()
         self.process = None
-        self.save_report = False
+        self.save_report: OutputType = OutputType.NONE
+        self.zero_offset = False  # EXPERIMENTAL
 
         BaseManager.register('model', EnergyModel)
         manager = BaseManager()
         manager.start()
         self.model = manager.model()  # type: ignore
+
+        self.model.set_zero_offset(self.zero_offset)
 
         self.report_name = "CPU Energy Test Report"
 
@@ -40,7 +52,7 @@ class EnergyTester(metaclass=SingletonMeta):
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.stop(exc_type, exc_value, traceback)
-        if self.save_report:
+        if self.save_report == OutputType.JSON or self.save_report == OutputType.PRINT_JSON:
             self.report_builder.save_report()
 
     @staticmethod
@@ -62,8 +74,10 @@ class EnergyTester(metaclass=SingletonMeta):
         self.report_builder.set_model_name(model.__name__)
 
     # Set whether to save report (Default = False)
-    def set_save_report(self, save_report: bool):
+    def set_save_report(self, save_report: OutputType):
         self.save_report = save_report
+        if save_report == OutputType.PRINT or save_report == OutputType.PRINT_JSON:
+            self.report_builder.register_print_handler()
 
     # Set custom report name
     def set_report_name(self, name: str):
@@ -74,7 +88,12 @@ class EnergyTester(metaclass=SingletonMeta):
     def set_report_description(self, description: str):
         self.report_builder.set_description(description)
 
-    def test(self, func, times, func_name=None):
+    # Set custom report description
+    def set_zero_offset(self, offset: bool):
+        self.zero_offset = offset
+        self.model.set_zero_offset(offset)
+
+    def test(self, func, times, func_name=None, include_case=True):
         if func_name is None:
             func_name = func.__qualname__
 
@@ -124,15 +143,17 @@ class EnergyTester(metaclass=SingletonMeta):
             energy_list.append(values[1])
             power_list.append(values[2])
 
-        self.report_builder.add_case(time_list=time_list,
-                                     energy_list=energy_list,
-                                     power_list=power_list,
-                                     test_name=func_name,
-                                     passed=passed,
-                                     reason=reason)
+        if include_case:
+            self.report_builder.add_case(time_list=time_list,
+                                         energy_list=energy_list,
+                                         power_list=power_list,
+                                         test_name=func_name,
+                                         passed=passed,
+                                         reason=reason)
 
-        if self.save_report:
+        if self.save_report == OutputType.JSON or self.save_report == OutputType.PRINT_JSON:
             self.report_builder.save_report()
+
         return {"time": time_list, "energy": energy_list, "power": power_list, "result": result, "exception": error}
 
     def start(self):

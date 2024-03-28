@@ -48,7 +48,7 @@ class ReportBuilder:
         temp = -1
         try:
             if psutil.WINDOWS:
-                import wmi
+                import wmi  # type: ignore
                 c = wmi.WMI()
                 thermal_zone_info = c.query(
                     "SELECT * FROM Win32_PerfFormattedData_Counters_ThermalZoneInformation WHERE Name LIKE '%CPU%'")
@@ -111,3 +111,7 @@ class ReportBuilder:
 
     def print_report(self):
         print(json.dumps(self.report, indent=4))
+
+    def register_print_handler(self):
+        import atexit
+        atexit.register(self.print_report)
