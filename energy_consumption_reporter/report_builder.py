@@ -35,8 +35,11 @@ class ReportBuilder:
         self.report["results"].update({"description": self.description})
         self.report["results"].update({"version": self.version})
         self.report["results"].update({"software_version": "v0.1BETA"})
-        commit = subprocess.check_output(
-            "git rev-parse HEAD", shell=True).decode("utf-8").removesuffix("\n")
+        try:
+            commit = subprocess.check_output(
+                "git rev-parse HEAD", shell=True).decode("utf-8").removesuffix("\n")
+        except:
+            commit = "Unknown"
         self.report["results"].update({"commit": commit})
         self.report["results"].update({"date": self.time})
         self.report["results"].update({"model": self.model_name})
@@ -101,7 +104,8 @@ class ReportBuilder:
         if file_path is None:
             file_dir = os.path.join(os.getcwd(), self.report_path)
             os.makedirs(file_dir, exist_ok=True)
-            file_path = os.path.join(file_dir, "EnergyReport-" + self.time.replace(':', '') + ".json")
+            file_path = os.path.join(
+                file_dir, "EnergyReport-" + self.time.replace(':', '') + ".json")
         with open(file_path, 'w+') as file:
             file.write(json.dumps(self.report, indent=4))
 
