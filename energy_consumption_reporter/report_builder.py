@@ -93,8 +93,8 @@ class ReportBuilder:
             "result": "pass" if passed else "fail",
             "reason": reason,
             "N": len(time_list),
-            "execution_time": time_list,
             "avg_cpu_util": avg_cpu_util,
+            "execution_time": time_list,
             "energy": energy_list,
             "power": power_list,
         }
