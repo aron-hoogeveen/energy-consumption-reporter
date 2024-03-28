@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "energy_consumption_reporter"
-version = "0.1.4"
+version = "0.1.5"
 authors = [
   "Rodin Haker <rodinhaker@hotmail.com>",
 ]

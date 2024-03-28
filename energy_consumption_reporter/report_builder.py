@@ -81,7 +81,7 @@ class ReportBuilder:
 
         self.report["results"].update({"cases": []})
 
-    def add_case(self, time_list, energy_list, power_list, test_name, passed, reason):
+    def add_case(self, time_list, energy_list, power_list, avg_cpu_util, test_name, passed, reason):
         energy_list = [
             int(item*10000) / 10000 for item in energy_list]
 
@@ -94,6 +94,7 @@ class ReportBuilder:
             "reason": reason,
             "N": len(time_list),
             "execution_time": time_list,
+            "avg_cpu_util": avg_cpu_util,
             "energy": energy_list,
             "power": power_list,
         }

@@ -28,6 +28,7 @@ class MeasureProcess(Process):
             start = time.time_ns()
             measurements: list[tuple[int, float]] = []
             cpu_temps = []
+            cpu_utils = []
 
             # get parent process
             this_process = psutil.Process()
@@ -41,6 +42,7 @@ class MeasureProcess(Process):
                 if utilization < 0 or utilization > 100:
                     continue
 
+                cpu_utils.append(utilization)
                 now = time.time_ns()
                 wattage: float = self.model.predict(float(utilization))
                 measurement = (now, wattage)
@@ -79,9 +81,11 @@ class MeasureProcess(Process):
                 list(wattages)))
             avg_temp = float(np.mean(
                 list(cpu_temps)))
+            avg_cpu_util = float(np.mean(
+                list(cpu_utils)))
 
             self.connection.send(
-                (total_time_ms, energy, avg_wattage, avg_temp))
+                (total_time_ms, energy, avg_wattage, avg_temp, avg_cpu_util))
         except Exception as e:
             self.connection.send(e)
 

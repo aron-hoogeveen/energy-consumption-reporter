@@ -48,5 +48,5 @@ if __name__ == '__main__':
     EnergyTester().set_save_report(OutputType.JSON)
 
     test_func()
-    test_func2()
+    # test_func2()
     test_func3()

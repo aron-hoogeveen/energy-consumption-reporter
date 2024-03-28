@@ -142,11 +142,13 @@ class EnergyTester(metaclass=SingletonMeta):
             time_list.append(values[0])
             energy_list.append(values[1])
             power_list.append(values[2])
+            avg_cpu_util = values[4]
 
         if include_case:
             self.report_builder.add_case(time_list=time_list,
                                          energy_list=energy_list,
                                          power_list=power_list,
+                                         avg_cpu_util=avg_cpu_util,
                                          test_name=func_name,
                                          passed=passed,
                                          reason=reason)
@@ -154,7 +156,7 @@ class EnergyTester(metaclass=SingletonMeta):
         if self.save_report == OutputType.JSON or self.save_report == OutputType.PRINT_JSON:
             self.report_builder.save_report()
 
-        return {"time": time_list, "energy": energy_list, "power": power_list, "result": result, "exception": error}
+        return {"time": time_list, "energy": energy_list, "power": power_list, "cpu_util": avg_cpu_util, "result": result, "exception": error}
 
     def start(self):
         self.process = MeasureProcess(self.conn1, self.model)
@@ -178,10 +180,12 @@ class EnergyTester(metaclass=SingletonMeta):
         time_list.append(values[0])
         energy_list.append(values[1])
         power_list.append(values[2])
+        avg_cpu_util = values[4]
 
         self.report_builder.add_case(time_list=time_list,
                                      energy_list=energy_list,
                                      power_list=power_list,
+                                     avg_cpu_util=avg_cpu_util,
                                      test_name=func,
                                      passed=True if exc_type is None else False,
                                      reason=str(exc_value) if exc_value is not None else "")
