@@ -48,7 +48,7 @@ class ReportBuilder:
         temp = -1
         try:
             if psutil.WINDOWS:
-                import wmi
+                import wmi  # type: ignore
                 c = wmi.WMI()
                 thermal_zone_info = c.query(
                     "SELECT * FROM Win32_PerfFormattedData_Counters_ThermalZoneInformation WHERE Name LIKE '%CPU%'")
@@ -81,18 +81,21 @@ class ReportBuilder:
 
         self.report["results"].update({"cases": []})
 
-    def add_case(self, time_list, energy_list, power_list, test_name, passed, reason):
+    def add_case(self, time_list, energy_list, power_list, avg_cpu_util, test_name, passed, reason):
         energy_list = [
             int(item*10000) / 10000 for item in energy_list]
 
         power_list = [
             int(item*10000) / 10000 for item in power_list]
 
+        avg_cpu_util = int(avg_cpu_util*10000) / 10000
+
         case = {
             "name": test_name,
             "result": "pass" if passed else "fail",
             "reason": reason,
             "N": len(time_list),
+            "avg_cpu_util": avg_cpu_util,
             "execution_time": time_list,
             "energy": energy_list,
             "power": power_list,
@@ -111,3 +114,7 @@ class ReportBuilder:
 
     def print_report(self):
         print(json.dumps(self.report, indent=4))
+
+    def register_print_handler(self):
+        import atexit
+        atexit.register(self.print_report)

@@ -1,6 +1,7 @@
 import logging
 from energy_consumption_reporter.energy_tester import EnergyTester
 from energy_consumption_reporter.energy_model import EnergyModel
+from energy_consumption_reporter.energy_tester import EnergyTester, OutputType
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
@@ -44,7 +45,8 @@ if __name__ == '__main__':
     # EnergyTest().set_model(EnergyModel)
     EnergyTester().set_report_name("Custom Report Name")
     EnergyTester().set_report_description("Custom Report Description")
-    EnergyTester().set_save_report(True)
+    EnergyTester().set_save_report(OutputType.JSON)
+    EnergyTester().set_zero_offset(False)
 
     test_func()
     test_func2()
