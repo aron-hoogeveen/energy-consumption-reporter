@@ -88,6 +88,8 @@ class ReportBuilder:
         power_list = [
             int(item*10000) / 10000 for item in power_list]
 
+        avg_cpu_util = int(avg_cpu_util*10000) / 10000
+
         case = {
             "name": test_name,
             "result": "pass" if passed else "fail",
